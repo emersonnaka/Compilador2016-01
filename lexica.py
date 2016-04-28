@@ -9,10 +9,11 @@ reservadas = {
     'repita': 'REPITA',
     'até': 'ATE',
     'leia': 'LEIA',
-    'escreve': 'ESCREVE',
-    'flutuante': 'FLUTUANTE',
+    'escreva': 'ESCREVA',
     'inteiro': 'INTEIRO',
+    'flutuante': 'FLUTUANTE',
     'vazio': 'VAZIO',
+    'principal': 'PRINCIPAL',
     'retorna': 'RETORNA'
 }
 
