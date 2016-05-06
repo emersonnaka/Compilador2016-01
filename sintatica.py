@@ -84,7 +84,7 @@ def p_tipo(t):
     else:
         t[0] = AST('tipoVazio', [], [t[1]])
 
-# chamaFuncao -> ID ABREPARENTES parametros FECHAPARENTES NOVALINHA
+# chamaFuncao -> ID ABREPARENTES parametros FECHAPARENTES
 def p_chamaFuncao(t):
     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
