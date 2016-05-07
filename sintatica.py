@@ -204,6 +204,13 @@ def p_exprArit(t):
     else:
         t[0] = AST('exprArit', [t[1]])
 
+# soma -> MAIS
+#      | MENOS
+def p_soma(t):
+    ''' soma : MAIS
+             | MENOS '''
+    t[0] = AST('maisMenos', [], [t[1]])
+
 # termo -> termo multi fator
 #       | fator
 def p_termo(t):
@@ -221,19 +228,12 @@ def p_multi(t):
               | DIVIDIR '''
     t[0] = AST('vezesDividir', [], [t[1]])
 
-# soma -> MAIS
-#      | MENOS
-def p_soma(t):
-    ''' soma : MAIS
-             | MENOS '''
-    t[0] = AST('maisMenos', [], [t[1]])
-
 # fator -> ABREPARENTES exprArit FECHAPARENTES
 #       | num
 #       | ID
 def p_fator_1(t):
     ' fator : ABREPARENTES exprArit FECHAPARENTES '
-    t[0] = AST('fatorExprArti', [t[1]])
+    t[0] = AST('fatorExprArit', [t[1]])
 
 def p_fator_2(t):
     ' fator : num '
