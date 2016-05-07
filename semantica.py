@@ -95,19 +95,20 @@ class Semantica():
         return node.leaf[0]
 
 # def p_conjParametros_(t):
-#     ''' conjParametros : conjParametros VIRGULA tipo DOISPONTOS ID
+#     ''' conjParametros : tipo DOISPONTOS ID VIRGULA conjParametros 
 #                        | tipo DOISPONTOS ID
 #                        | empty '''
 #     if (len(t) == 6):
-#         t[0] = AST('conjParametrosComp', [t[1], t[3]], [t[5]])
+#         t[0] = AST('conjParametrosComp', [t[1], t[5]], [t[3]])
 #     elif (len(t) == 4):
 #         t[0] = AST('conjParametros', [t[1]], [t[3]])
 #     else:
 #         t[0] = AST('conjParametrosEmpty', [])
     def conjParametros(self, node):
         variaveis = []
-        if(len(node.children) > 0):
+        if len(node.children) > 0:
             tipo = self.getTipo(node.children[0])
+            print("ID " + node.leaf[0])
             variaveis.append(tipo)
             self.simbolos[str(self.escopo + '.' + node.leaf[0])] = ['variável', 0, tipo]
             print(str(self.escopo + '.' + node.leaf[0]))
@@ -115,7 +116,7 @@ class Semantica():
                 print("DENTRO DO IF")
                 print(str(self.escopo + '.' + node.leaf[0]))
                 variaveis = variaveis + self.conjParametros(node.children[0])
-                print("depois das variaveis")
+                print(variaveis)
         return variaveis
 
 # def p_declaraVar(t):
