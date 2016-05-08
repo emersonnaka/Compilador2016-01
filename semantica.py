@@ -72,7 +72,7 @@ class Semantica():
 # um ID com o tipo diferente, não daria erro. Sendo que o correto é acusar o erro
     def funcao(self, node):
         self.escopo = node.leaf[0]
-        qtdeParam = self.conjParametros(node.children[0])
+        qtdeParam = self.conjParametros(node.children[1])
         tipo = self.getTipo(node.children[0])
         if node.leaf[0] is self.simbolos.keys():
             print("Erro semântico: função '" + node.leaf[0] + "'já foi declarado")
@@ -108,15 +108,10 @@ class Semantica():
         variaveis = []
         if len(node.children) > 0:
             tipo = self.getTipo(node.children[0])
-            print("ID " + node.leaf[0])
             variaveis.append(tipo)
-            self.simbolos[str(self.escopo + '.' + node.leaf[0])] = ['variável', 0, tipo]
-            print(str(self.escopo + '.' + node.leaf[0]))
+            self.simbolos[str(self.escopo + '.' + node.leaf[0])] = ['variável', tipo]
             if len(node.children) > 1:
-                print("DENTRO DO IF")
-                print(str(self.escopo + '.' + node.leaf[0]))
-                variaveis = variaveis + self.conjParametros(node.children[0])
-                print(variaveis)
+                variaveis = variaveis + self.conjParametros(node.children[1])
         return variaveis
 
 # def p_declaraVar(t):
@@ -130,7 +125,7 @@ class Semantica():
         if node.leaf[0] is self.simbolos.keys():
             print("Erro semântico: ID '" + node.leaf[0] + "' foi declarado como função")
             exit(1)
-        self.simbolos[self.escopo + "." + node.leaf[0]] = ["variável", 0, tipo]
+        self.simbolos[self.escopo + "." + node.leaf[0]] = ["variável", tipo]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
@@ -141,7 +136,7 @@ class Semantica():
             exit(1)
         qtdeParam = self.parametros(node.children[0])
         if len(self.simbolos[node.leaf[0]][2]) != qtdeParam:
-            print("Erro semântico: esperado '" + str(len(self.simbolos[node.leaf[0]][1])) + "' parâmetro(s)")
+            print("Erro semântico: esperado '" + str(len(self.simbolos[node.leaf[0]][1])) + "' parâmetro(s) na função " + node.leaf[0])
             exit(1)
 
 # def p_parametros(t):
@@ -157,7 +152,7 @@ class Semantica():
 #             t[0] = AST('parametrosEmpty', [])
     def parametros(self, node):
         if len(node.children) > 1:
-            return self.parametros(node.children[0]) + 1
+            return self.parametros(node.children[0]) + 1 
         elif len(node.children) == 1:
             return 1
         else:
@@ -218,7 +213,7 @@ class Semantica():
         self.conjExpr(node.children[0])
         self.conjInstrucao(node.children[1])
         if len(node.children) == 3:
-            self,conjInstrucao(node.children[2])
+            self.conjInstrucao(node.children[2])
 
 # def p_repeticao(t):
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
@@ -232,7 +227,7 @@ class Semantica():
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
     def atribuicao(self, node):
-        if self.escopo + "." + node.leaf[0] not in self.simbolos.keys():
+        if (self.escopo + "." + node.leaf[0] not in self.simbolos.keys()) and ('global.' + node.leaf[0] not in self.simbolos.keys()):
             print("Erro semântico: ID '" + node.leaf[0] + "' não declarado")
             exit(1)
         if node.children[0].name == 'chamaFuncao':
@@ -244,7 +239,7 @@ class Semantica():
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
     def leitura(self, node):
-        if self.escopo + '.' + node.leaf[0] not in self.simbolos.keys():
+        if (self.escopo + "." + node.leaf[0] not in self.simbolos.keys()) and ('global.' + node.leaf[0] not in self.simbolos.keys()):   
             print("Erro semântico: ID '" + node.leaf[0] + "' não declarado")
             exit(1)
 
