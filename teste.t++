@@ -27,8 +27,10 @@ inteiro fatorial (inteiro: n)
 fim
 
 vazio principal()
+	inteiro: n
 	leia(n)
-	escreva(fatorial(n))
+	escreva(fatorial(654))
 	n := fazNada(0, 0)
+	x := 3.14
+	a := 9
 fim
-
