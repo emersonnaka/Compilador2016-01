@@ -92,17 +92,17 @@ def p_chamaFuncao(t):
 # parametros -> parametros VIRGULA exprArit
 #             | exprArit
 #             | vazio
-def p_parametros(t):
-    ''' parametros : parametros VIRGULA exprArit
-                   | exprArit
-                   | empty '''
-    if (len(t) == 4):
-        t[0] = AST('parametrosComp', [t[1], t[3]])
-    else:
-        if t[1] == 'exprArit':
-            t[0] = AST('parametrosExprArit', [t[1]])
-        else:
-            t[0] = AST('parametrosEmpty', [])
+def p_parametros1(t):
+    ' parametros : parametros VIRGULA exprArit '
+    t[0] = AST('parametrosComp', [t[1], t[3]])
+
+def p_parametros2(t):
+    ' parametros : exprArit '
+    t[0] = AST('parametrosExprArit', [t[1]])
+
+def p_parametros3(t):
+    ' parametros : empty '
+    t[0] = AST('parametrosEmpty', [])
 
 # conjInstrucao -> conjInstrucao instrucao
 #                | instrucao
@@ -176,7 +176,7 @@ def p_retorna(t):
 def p_conjExpr(t):
     ''' conjExpr : exprArit compara exprArit
                  | exprArit '''
-    if (len(t ) == 4):
+    if (len(t) == 4):
         t[0] = AST('conjExprComp', [t[1], t[2], t[3]])
     else:
         t[0] = AST('conjExpr', [t[1]])
