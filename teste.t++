@@ -1,6 +1,10 @@
 flutuante:x
 inteiro:a
 
+vazio ha()
+	inteiro: p
+fim
+
 flutuante fazNada (inteiro: a, flutuante: b)
 	se a = 0 então
 		retorna(8)
@@ -30,7 +34,8 @@ vazio principal()
 	inteiro: n
 	leia(n)
 	escreva(fatorial(654))
-	n := fazNada(0, 0)
-	x := 3.14
+{	n := fazNada(0, 0)
+}	x := 3.14
 	a := 9
 fim
+
