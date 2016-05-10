@@ -231,6 +231,9 @@ class Semantica():
             print("Erro semântico: ID '" + node.leaf[0] + "' não declarado")
             exit(1)
         if node.children[0].name == 'chamaFuncao':
+            if self.simbolos[self.escopo + '.' + node.leaf[0]][1] != self.simbolos[node.children[0].leaf[0]][1]:
+                print("WARNING: ID '" + node.leaf[0] + "' é do tipo '" + self.simbolos[self.escopo + '.' + node.leaf[0]][1] +
+                 "' e está recebendo a função '" + node.children[0].leaf[0] + "' do tipo " + self.simbolos[node.children[0].leaf[0]][1])
             self.chamaFuncao(node.children[0])
         else:
             self.conjExpr(node.children[0])
