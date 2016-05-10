@@ -78,7 +78,7 @@ def p_tipo(t):
              | FLUTUANTE
              | VAZIO '''
     if t[1] == 'inteiro':
-        t[0] = AST('tipoInteiro', [], t[1])
+        t[0] = AST('tipoInteiro', [], [t[1]])
     elif t[1] == 'flutuante':
         t[0] = AST('tipoFlutuante', [], [t[1]])
     else:
