@@ -4,8 +4,8 @@ import collections
 class Semantica():
 
     def __init__ (self, codigo):
-        self.arvore = parse_tree(codigo)
-        self.simbolos = collections.OrderedDict()
+        self.árvore = parse_tree(codigo)
+        self.símbolos = collections.OrderedDict()
         self.escopo = 'global'
 
 # def p_programa(t):
@@ -19,17 +19,17 @@ class Semantica():
 # else:
 #     t[0] = AST('funcaoPrincipalPrograma', [t[1]])
     def semanticaTopo(self):
-        if self.arvore.nome == 'declaraVarGlobalPrograma':
-            self.declaraVarGlobal(self.arvore.filho[0])
-            self.declaraFuncao(self.arvore.filho[1])
+        if self.árvore.nome == 'declaraVarGlobalPrograma':
+            self.declaraVarGlobal(self.árvore.filho[0])
+            self.declaraFuncao(self.árvore.filho[1])
             self.escopo = "principal"
-            self.funcaoPrincipal(self.arvore.filho[2])
-        elif self.arvore.nome == 'declaraFuncaoPrograma':
-            self.declaraFuncao(self.arvore.filho[0])
+            self.funcaoPrincipal(self.árvore.filho[2])
+        elif self.árvore.nome == 'declaraFuncaoPrograma':
+            self.declaraFuncao(self.árvore.filho[0])
             self.escopo = "principal"
-            self.funcaoPrincipal(self.arvore.filho[1])
+            self.funcaoPrincipal(self.árvore.filho[1])
         else:
-            self.funcaoPrincipal(self.arvore.filho[0])
+            self.funcaoPrincipal(self.árvore.filho[0])
 
 # def p_declaraVarGlobal(t):
 #     ''' declaraVarGlobal : declaraVarGlobal declaraVar
@@ -38,12 +38,12 @@ class Semantica():
 #         t[0] = AST('declaraVarGlobalComp', [t[1], t[2]])
 #     else:
 #         t[0] = AST('declaraVarGlobal', [t[1]])
-    def declaraVarGlobal(self, node):
-        if len(node.filho) == 2:
-            self.declaraVarGlobal(node.filho[0])
-            self.declaraVar(node.filho[1])
+    def declaraVarGlobal(self, nó):
+        if len(nó.filho) == 2:
+            self.declaraVarGlobal(nó.filho[0])
+            self.declaraVar(nó.filho[1])
         else:
-            self.declaraVar(node.filho[0])
+            self.declaraVar(nó.filho[0])
 
 # def p_declaraFuncao(t):
 #     '''declaraFuncao : declaraFuncao funcao
@@ -52,37 +52,39 @@ class Semantica():
 #         t[0] = AST('declaraFuncaoComp', [t[1], t[2]])
 #     else:
 #         t[0] = AST('declaraFuncao', [t[1]])
-    def declaraFuncao(self, node):
-        if len(node.filho) == 2:
-            self.declaraFuncao(node.filho[0])
-            self.funcao(node.filho[1])
+    def declaraFuncao(self, nó):
+        if len(nó.filho) == 2:
+            self.declaraFuncao(nó.filho[0])
+            self.funcao(nó.filho[1])
         else:
-            self.funcao(node.filho[0])
+            self.funcao(nó.filho[0])
 
 # def p_funcaoPrincipal(t):
 #     ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA'
 #     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
-    def funcaoPrincipal(self, node):
-        self.conjInstrucao(node.filho[0])
+    def funcaoPrincipal(self, nó):
+        tipo = nó.folha[1]
+        self.símbolos[nó.folha[1]] = ['função', tipo, 0]
+        self.conjInstrucao(nó.filho[0])
 
 # def p_funcao(t):
 #     ' funcao : tipo ID ABREPARENTES conjParametros FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA '
 #     t[0] = AST('funcao', [t[1], t[4], t[7]], [t[2]])
 # Inicialmente, a chave do dicionário seria o tipo da função '.' id, entretanto, se o usuário declarasse
 # um ID com o tipo diferente, não daria erro. Sendo que o correto é acusar o erro
-    def funcao(self, node):
-        self.escopo = node.folha[0]
-        qtdeParam = self.conjParametros(node.filho[1])
-        tipo = self.getTipo(node.filho[0])
-        if node.folha[0] is self.simbolos.keys():
-            print("Erro semântico: função '" + node.folha[0] + "'já foi declarado")
+    def funcao(self, nó):
+        self.escopo = nó.folha[0]
+        qtdeParam = self.conjParametros(nó.filho[1])
+        tipo = self.getTipo(nó.filho[0])
+        if nó.folha[0] is self.símbolos.keys():
+            print("Erro semântico: função '" + nó.folha[0] + "'já foi declarado")
             exit(1)
-        self.simbolos[node.folha[0]] = ["função", tipo, qtdeParam]
-        self.conjParametros(node.filho[1])
-        self.conjInstrucao(node.filho[2])
-        if self.simbolos[node.folha[0]][1] != 'vazio':
-            if not node.buscaRetorno(node):
-                print("Erro semântico: função '" + node.folha[0] + "' espera uma chamada de retorno")
+        self.símbolos[nó.folha[0]] = ["função", tipo, qtdeParam]
+        self.conjParametros(nó.filho[1])
+        self.conjInstrucao(nó.filho[2])
+        if self.símbolos[nó.folha[0]][1] != 'vazio':
+            if not nó.buscaRetorno(nó):
+                print("Erro semântico: função '" + nó.folha[0] + "' espera uma chamada de retorno")
                 exit(1)
 
 # def p_tipo(t):
@@ -95,8 +97,8 @@ class Semantica():
 #         t[0] = AST('tipoFlutuante', [], [t[1]])
 #     else:
 #         t[0] = AST('tipoVazio', [], [t[1]])
-    def getTipo(self, node):
-        return node.folha[0]
+    def getTipo(self, nó):
+        return nó.folha[0]
 
 # def p_conjParametros_(t):
 #     ''' conjParametros : tipo DOISPONTOS ID VIRGULA conjParametros 
@@ -108,39 +110,39 @@ class Semantica():
 #         t[0] = AST('conjParametros', [t[1]], [t[3]])
 #     else:
 #         t[0] = AST('conjParametrosEmpty', [])
-    def conjParametros(self, node):
+    def conjParametros(self, nó):
         variaveis = []
-        if len(node.filho) > 0:
-            tipo = self.getTipo(node.filho[0])
+        if len(nó.filho) > 0:
+            tipo = self.getTipo(nó.filho[0])
             variaveis.append(tipo)
-            self.simbolos[str(self.escopo + '.' + node.folha[0])] = ['variável', tipo]
-            if len(node.filho) > 1:
-                variaveis = variaveis + self.conjParametros(node.filho[1])
+            self.símbolos[str(self.escopo + '.' + nó.folha[0])] = ['variável', tipo]
+            if len(nó.filho) > 1:
+                variaveis = variaveis + self.conjParametros(nó.filho[1])
         return variaveis
 
 # def p_declaraVar(t):
 #     ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
 #     t[0] = AST('declaraVar', [t[1]], [t[3]])
-    def declaraVar(self, node):
-        tipo = self.getTipo(node.filho[0])
-        if self.escopo + "." + node.folha[0] is self.simbolos.keys():
-            print("Erro semântico: ID '" + node.folha[0] + "' já foi declarado")
+    def declaraVar(self, nó):
+        tipo = self.getTipo(nó.filho[0])
+        if self.escopo + "." + nó.folha[0] is self.símbolos.keys():
+            print("Erro semântico: ID '" + nó.folha[0] + "' já foi declarado")
             exit(1)
-        if node.folha[0] is self.simbolos.keys():
-            print("Erro semântico: ID '" + node.folha[0] + "' foi declarado como função")
+        if nó.folha[0] is self.símbolos.keys():
+            print("Erro semântico: ID '" + nó.folha[0] + "' foi declarado como função")
             exit(1)
-        self.simbolos[self.escopo + "." + node.folha[0]] = ["variável", tipo]
+        self.símbolos[self.escopo + "." + nó.folha[0]] = ["variável", tipo]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
 #     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
-    def chamaFuncao(self, node):
-        if node.folha[0] not in self.simbolos.keys():
-            print("Erro semântico: função '" + node.folha[0] + "' não declarada")
+    def chamaFuncao(self, nó):
+        if nó.folha[0] not in self.símbolos.keys():
+            print("Erro semântico: função '" + nó.folha[0] + "' não declarada")
             exit(1)
-        qtdeParam = self.parametros(node.filho[0])
-        if len(self.simbolos[node.folha[0]][2]) != qtdeParam:
-            print("Erro semântico: esperado '" + str(len(self.simbolos[node.folha[0]][1])) + "' parâmetro(s) na função " + node.folha[0])
+        qtdeParam = self.parametros(nó.filho[0])
+        if len(self.símbolos[nó.folha[0]][2]) != qtdeParam:
+            print("Erro semântico: esperado '" + str(len(self.símbolos[nó.folha[0]][1])) + "' parâmetro(s) na função " + nó.folha[0])
             exit(1)
 
 # def p_parametros(t):
@@ -154,10 +156,10 @@ class Semantica():
 #             t[0] = AST('parametrosExprArit', [t[1]])
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
-    def parametros(self, node):
-        if len(node.filho) > 1:
-            return self.parametros(node.filho[0]) + 1 
-        elif len(node.filho) == 1:
+    def parametros(self, nó):
+        if len(nó.filho) > 1:
+            return self.parametros(nó.filho[0]) + 1 
+        elif len(nó.filho) == 1:
             return 1
         else:
             return 0
@@ -169,12 +171,12 @@ class Semantica():
 #         t[0] = AST('conjInstrucaoComp', [t[1], t[2]])
 #     else:
 #         t[0] = AST('conjInstrucao', [t[1]])
-    def conjInstrucao(self, node):
-        if len(node.filho) > 1:
-            self.conjInstrucao(node.filho[0])
-            self.instrucao(node.filho[1])
+    def conjInstrucao(self, nó):
+        if len(nó.filho) > 1:
+            self.conjInstrucao(nó.filho[0])
+            self.instrucao(nó.filho[1])
         else:
-            self.instrucao(node.filho[0])
+            self.instrucao(nó.filho[0])
 
 # def p_instrucao(t):
 #     '''instrucao : condicional
@@ -186,25 +188,25 @@ class Semantica():
 #                  | declaraVar
 #                  | retorna '''
 #     t[0] = AST('instrucao', [t[1]])
-    def instrucao(self, node):
-        if (node.filho[0].nome == 'condicionalSe'):
-            self.condicional(node.filho[0])
-        if (node.filho[0].nome == 'condicionalSenao'):
-            self.condicional(node.filho[0])
-        if node.filho[0].nome == 'repeticao':
-            self.repeticao(node.filho[0])
-        if node.filho[0].nome == 'atribuicao':
-            self.atribuicao(node.filho[0])
-        if node.filho[0].nome == 'leitura':
-            self.leitura(node.filho[0])
-        if node.filho[0].nome == 'escreva':
-            self.escreva(node.filho[0])
-        if node.filho[0].nome == 'retorna':
-            self.retorna(node.filho[0])
-        if node.filho[0].nome == 'declaraVar':
-            self.declaraVar(node.filho[0])
-        if node.filho[0].nome == 'chamaFuncao':
-            self.chamaFuncao(node.filho[0])
+    def instrucao(self, nó):
+        if (nó.filho[0].nome == 'condicionalSe'):
+            self.condicional(nó.filho[0])
+        if (nó.filho[0].nome == 'condicionalSenao'):
+            self.condicional(nó.filho[0])
+        if nó.filho[0].nome == 'repeticao':
+            self.repeticao(nó.filho[0])
+        if nó.filho[0].nome == 'atribuicao':
+            self.atribuicao(nó.filho[0])
+        if nó.filho[0].nome == 'leitura':
+            self.leitura(nó.filho[0])
+        if nó.filho[0].nome == 'escreva':
+            self.escreva(nó.filho[0])
+        if nó.filho[0].nome == 'retorna':
+            self.retorna(nó.filho[0])
+        if nó.filho[0].nome == 'declaraVar':
+            self.declaraVar(nó.filho[0])
+        if nó.filho[0].nome == 'chamaFuncao':
+            self.chamaFuncao(nó.filho[0])
 
 # def p_condicional(t):
 #     ''' condicional : SE conjExpr ENTAO NOVALINHA conjInstrucao FIM NOVALINHA
@@ -213,58 +215,58 @@ class Semantica():
 #         t[0] = AST('condicionalSe', [t[2], t[5]])
 #     else:
 #         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
-    def condicional(self, node):
-        self.conjExpr(node.filho[0])
-        self.conjInstrucao(node.filho[1])
-        if len(node.filho) == 3:
-            self.conjInstrucao(node.filho[2])
+    def condicional(self, nó):
+        self.conjExpr(nó.filho[0])
+        self.conjInstrucao(nó.filho[1])
+        if len(nó.filho) == 3:
+            self.conjInstrucao(nó.filho[2])
 
 # def p_repeticao(t):
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
-    def repeticao(self, node):
-        self.conjInstrucao(node.filho[0])
-        self.conjExpr(node.filho[1])
+    def repeticao(self, nó):
+        self.conjInstrucao(nó.filho[0])
+        self.conjExpr(nó.filho[1])
 
 # def p_atribuicao(t):
 #     ''' atribuicao : ID RECEBE conjExpr NOVALINHA
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
-    def atribuicao(self, node):
-        if (self.escopo + "." + node.folha[0] not in self.simbolos.keys()) and ('global.' + node.folha[0] not in self.simbolos.keys()):
-            print("Erro semântico: ID '" + node.folha[0] + "' não declarado")
+    def atribuicao(self, nó):
+        if (self.escopo + "." + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
+            print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
-        if node.filho[0].nome == 'chamaFuncao':
-            if self.simbolos[self.escopo + '.' + node.folha[0]][1] != self.simbolos[node.filho[0].folha[0]][1]:
-                print("WARNING: ID '" + node.folha[0] + "' é do tipo '" + self.simbolos[self.escopo + '.' + node.folha[0]][1] +
-                 "' e está recebendo a função '" + node.filho[0].folha[0] + "' do tipo " + self.simbolos[node.filho[0].folha[0]][1])
-            self.chamaFuncao(node.filho[0])
+        if nó.filho[0].nome == 'chamaFuncao':
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
+                print("WARNING: ID '" + nó.folha[0] + "' é do tipo '" + self.símbolos[self.escopo + '.' + nó.folha[0]][1] +
+                 "' e está recebendo a função '" + nó.filho[0].folha[0] + "' do tipo " + self.símbolos[nó.filho[0].folha[0]][1])
+            self.chamaFuncao(nó.filho[0])
         else:
-            self.conjExpr(node.filho[0])
+            self.conjExpr(nó.filho[0])
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
-    def leitura(self, node):
-        if (self.escopo + "." + node.folha[0] not in self.simbolos.keys()) and ('global.' + node.folha[0] not in self.simbolos.keys()):   
-            print("Erro semântico: ID '" + node.folha[0] + "' não declarado")
+    def leitura(self, nó):
+        if (self.escopo + "." + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):   
+            print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
 
 # def p_escreva(t):
 #     ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
 #                 | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
 #     t[0] = AST('escreva', [t[3]])
-    def escreva(self, node):
-        if node.filho[0].nome == 'chamaFuncao':
-            self.chamaFuncao(node.filho[0])
+    def escreva(self, nó):
+        if nó.filho[0].nome == 'chamaFuncao':
+            self.chamaFuncao(nó.filho[0])
         else:
-            self.conjExpr(node.filho[0])
+            self.conjExpr(nó.filho[0])
 
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
-    def retorna(self, node):
-        self.exprArit(node.filho[0])
+    def retorna(self, nó):
+        self.exprArit(nó.filho[0])
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
@@ -273,13 +275,13 @@ class Semantica():
 #         t[0] = AST('conjExprComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('conjExpr', [t[1]])
-    def conjExpr(self, node):
-        if len(node.filho) == 3:
-            self.exprArit(node.filho[0])
-            operador = self.compara(node.filho[1])
-            self.exprArit(node.filho[2])
+    def conjExpr(self, nó):
+        if len(nó.filho) == 3:
+            self.exprArit(nó.filho[0])
+            operador = self.compara(nó.filho[1])
+            self.exprArit(nó.filho[2])
         else:
-            self.exprArit(node.filho[0])
+            self.exprArit(nó.filho[0])
 
 # def p_compara(t):
 #     ''' compara : MENOR
@@ -288,8 +290,8 @@ class Semantica():
 #                 | MAIORIGUAL
 #                 | IGUAL '''
 #     t[0] = AST('compara', [], [t[1]])
-    def compara(self, node):
-        return node.folha[0]
+    def compara(self, nó):
+        return nó.folha[0]
 
 # def p_exprArit(t):
 #     ''' exprArit : exprArit soma termo 
@@ -298,20 +300,20 @@ class Semantica():
 #         t[0] = AST('exprAritComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
-    def exprArit(self, node):
-        if len(node.filho) == 3:
-            self.exprArit(node.filho[0])
-            operador = self.soma(node.filho[1])
-            self.termo(node.filho[2])
+    def exprArit(self, nó):
+        if len(nó.filho) == 3:
+            self.exprArit(nó.filho[0])
+            operador = self.soma(nó.filho[1])
+            self.termo(nó.filho[2])
         else:
-            self.termo(node.filho[0])
+            self.termo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
 #              | MENOS '''
 #     t[0] = AST('maisMenos', [], [t[1]])
-    def soma(self, node):
-        return node.folha[0]
+    def soma(self, nó):
+        return nó.folha[0]
 
 # def p_termo(t):
 #     ''' termo : termo multi fator
@@ -320,20 +322,20 @@ class Semantica():
 #         t[0] = AST('termoComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('termo', [t[1]])
-    def termo(self, node):
-        if len(node.filho) == 3:
-            self.termo(node.filho[0])
-            operador = self.multi(node.filho[1])
-            self.fator(node.filho[2])
+    def termo(self, nó):
+        if len(nó.filho) == 3:
+            self.termo(nó.filho[0])
+            operador = self.multi(nó.filho[1])
+            self.fator(nó.filho[2])
         else:
-            self.fator(node.filho[0])
+            self.fator(nó.filho[0])
 
 # def p_multi(t):
 #     ''' multi : VEZES
 #               | DIVIDIR '''
 #     t[0] = AST('vezesDividir', [], [t[1]])
-    def multi(self, node):
-        return node.folha[0]
+    def multi(self, nó):
+        return nó.folha[0]
 
 # def p_fator_1(t):
 #     ' fator : ABREPARENTES exprArit FECHAPARENTES '
@@ -344,17 +346,17 @@ class Semantica():
 # def p_fator_3(t):
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
-    def fator(self, node):
-        if node.nome == 'fatorID':
-            if self.escopo + '.' + node.folha[0] not in self.simbolos.keys():
-                print("Erro semântico: ID '" + node.folha[0] + "' não declarado")
+    def fator(self, nó):
+        if nó.nome == 'fatorID':
+            if self.escopo + '.' + nó.folha[0] not in self.símbolos.keys():
+                print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
                 exit(1)
-        elif node.nome =='fatorExprArit':
-            self.exprArit(node.filho[0])
+        elif nó.nome =='fatorExprArit':
+            self.exprArit(nó.filho[0])
 
 if __name__ == '__main__':
     import sys
     code = open(sys.argv[1])
     s = Semantica(code.read())
     s.semanticaTopo()
-    print("Tabela de Simbolos:", s.simbolos)
+    print("Tabela de Simbolos:", s.símbolos)
