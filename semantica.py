@@ -1,11 +1,10 @@
 from sintatica import *
-import collections
 
 class Semantica():
 
     def __init__ (self, codigo):
         self.árvore = parse_tree(codigo)
-        self.símbolos = collections.OrderedDict()
+        self.símbolos = {}
         self.escopo = 'global'
 
 # def p_programa(t):
@@ -22,11 +21,11 @@ class Semantica():
         if self.árvore.nome == 'declaraVarGlobalPrograma':
             self.declaraVarGlobal(self.árvore.filho[0])
             self.declaraFuncao(self.árvore.filho[1])
-            self.escopo = "principal"
+            self.escopo = 'principal'
             self.funcaoPrincipal(self.árvore.filho[2])
         elif self.árvore.nome == 'declaraFuncaoPrograma':
             self.declaraFuncao(self.árvore.filho[0])
-            self.escopo = "principal"
+            self.escopo = 'principal'
             self.funcaoPrincipal(self.árvore.filho[1])
         else:
             self.funcaoPrincipal(self.árvore.filho[0])
@@ -64,7 +63,7 @@ class Semantica():
 #     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
     def funcaoPrincipal(self, nó):
         tipo = nó.folha[1]
-        self.símbolos[nó.folha[1]] = ['função', tipo, 0]
+        self.símbolos[nó.folha[1]] = ['funçãoPrincipal', tipo]
         self.conjInstrucao(nó.filho[0])
 
 # def p_funcao(t):
@@ -82,10 +81,6 @@ class Semantica():
         self.símbolos[nó.folha[0]] = ["função", tipo, qtdeParam]
         self.conjParametros(nó.filho[1])
         self.conjInstrucao(nó.filho[2])
-        if self.símbolos[nó.folha[0]][1] != 'vazio':
-            if not nó.buscaRetorno(nó):
-                print("Erro semântico: função '" + nó.folha[0] + "' espera uma chamada de retorno")
-                exit(1)
 
 # def p_tipo(t):
 #     ''' tipo : INTEIRO
@@ -115,7 +110,7 @@ class Semantica():
         if len(nó.filho) > 0:
             tipo = self.getTipo(nó.filho[0])
             variaveis.append(tipo)
-            self.símbolos[str(self.escopo + '.' + nó.folha[0])] = ['variável', tipo]
+            self.símbolos[str(self.escopo + '.' + nó.folha[0])] = ['variável', tipo, True]
             if len(nó.filho) > 1:
                 variaveis = variaveis + self.conjParametros(nó.filho[1])
         return variaveis
@@ -125,13 +120,13 @@ class Semantica():
 #     t[0] = AST('declaraVar', [t[1]], [t[3]])
     def declaraVar(self, nó):
         tipo = self.getTipo(nó.filho[0])
-        if self.escopo + "." + nó.folha[0] is self.símbolos.keys():
+        if self.escopo + '.' + nó.folha[0] is self.símbolos.keys():
             print("Erro semântico: ID '" + nó.folha[0] + "' já foi declarado")
             exit(1)
         if nó.folha[0] is self.símbolos.keys():
             print("Erro semântico: ID '" + nó.folha[0] + "' foi declarado como função")
             exit(1)
-        self.símbolos[self.escopo + "." + nó.folha[0]] = ["variável", tipo]
+        self.símbolos[self.escopo + '.' + nó.folha[0]] = ['variável', tipo, False]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
@@ -141,6 +136,7 @@ class Semantica():
             print("Erro semântico: função '" + nó.folha[0] + "' não declarada")
             exit(1)
         qtdeParam = self.parametros(nó.filho[0])
+        print("Quantidade de parâmetros da função '" + nó.folha[0] + "': " + str(qtdeParam))
         if len(self.símbolos[nó.folha[0]][2]) != qtdeParam:
             print("Erro semântico: esperado '" + str(len(self.símbolos[nó.folha[0]][1])) + "' parâmetro(s) na função " + nó.folha[0])
             exit(1)
@@ -158,8 +154,10 @@ class Semantica():
 #             t[0] = AST('parametrosEmpty', [])
     def parametros(self, nó):
         if len(nó.filho) > 1:
+            self.exprArit(nó.filho[1])
             return self.parametros(nó.filho[0]) + 1 
         elif len(nó.filho) == 1:
+            self.exprArit(nó.filho[0])
             return 1
         else:
             return 0
@@ -233,22 +231,26 @@ class Semantica():
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
     def atribuicao(self, nó):
-        if (self.escopo + "." + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
+        if (self.escopo + '.' + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
             print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
         if nó.filho[0].nome == 'chamaFuncao':
-            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
-                print("WARNING: ID '" + nó.folha[0] + "' é do tipo '" + self.símbolos[self.escopo + '.' + nó.folha[0]][1] +
-                 "' e está recebendo a função '" + nó.filho[0].folha[0] + "' do tipo " + self.símbolos[nó.filho[0].folha[0]][1])
+            if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
+                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
+                exit(1)
             self.chamaFuncao(nó.filho[0])
         else:
             self.conjExpr(nó.filho[0])
+        if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+            self.símbolos[self.escopo + '.' + nó.folha[0]][2] = True
+        elif 'global.' + nó.folha[0] in self.símbolos.keys():
+            self.símbolos['global.' + nó.folha[0]][2] = True
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
     def leitura(self, nó):
-        if (self.escopo + "." + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):   
+        if (self.escopo + '.' + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):   
             print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
 
@@ -347,12 +349,20 @@ class Semantica():
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
     def fator(self, nó):
-        if nó.nome == 'fatorID':
-            if self.escopo + '.' + nó.folha[0] not in self.símbolos.keys():
+        if nó.nome == 'fatorExprArit':
+            self.exprArit(nó.filho[0])
+        elif nó.nome == 'fatorID':
+            if (self.escopo + '.' + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
                 print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
                 exit(1)
-        elif nó.nome =='fatorExprArit':
-            self.exprArit(nó.filho[0])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
+                    print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
+                    exit(1)
+            elif 'global.' + nó.folha[0] in self.símbolos.keys():
+                if not(self.símbolos['global.' + nó.folha[0]][2]):
+                    print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
+                    exit(1)
 
 if __name__ == '__main__':
     import sys
