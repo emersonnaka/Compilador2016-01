@@ -41,14 +41,14 @@ def p_declaraFuncao(t):
     else:
         t[0] = AST('declaraFuncao', [t[1]])
 
-# funcaoPrincipal -> VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM
+# funcaoPrincipal -> VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES novaLinha conjInstrucao FIM
 def p_funcaoPrincipal(t):
-    ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA'
+    ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES novaLinha conjInstrucao FIM novaLinha'
     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
 
-# funcao -> tipo ID ABREPARENTES conjParametros FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA
+# funcao -> tipo ID ABREPARENTES conjParametros FECHAPARENTES novaLinha conjInstrucao FIM novaLinha
 def p_funcao(t):
-    ' funcao : tipo ID ABREPARENTES conjParametros FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA '
+    ' funcao : tipo ID ABREPARENTES conjParametros FECHAPARENTES novaLinha conjInstrucao FIM novaLinha '
     t[0] = AST('funcao', [t[1], t[4], t[7]], [t[2]])
 
 # conjParametros -> tipo DOISPONTOS ID VIRGULA conjParametros
@@ -65,9 +65,9 @@ def p_conjParametros_(t):
     else:
         t[0] = AST('conjParametrosEmpty', [])
 
-# declaraVar -> tipo DOISPONTOS ID NOVALINHA
+# declaraVar -> tipo DOISPONTOS ID novaLinha
 def p_declaraVar(t):
-    ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
+    ' declaraVar : tipo DOISPONTOS ID novaLinha '
     t[0] = AST('declaraVar', [t[1]], [t[3]])
 
 # tipo -> INTEIRO
@@ -128,47 +128,47 @@ def p_instrucao(t):
                  | atribuicao
                  | leitura
                  | escreva
-                 | chamaFuncao NOVALINHA
+                 | chamaFuncao novaLinha
                  | declaraVar
                  | retorna '''
     t[0] = AST('instrucao', [t[1]])
 
-# condicional -> SE conjExpr ENTAO NOVALINHA conjInstrucao FIM NOVALINHA
-#              | SE conjExpr ENTAO NOVALINHA conjInstrucao SENAO NOVALINHA conjInstrucao FIM NOVALINHA
+# condicional -> SE conjExpr ENTAO novaLinha conjInstrucao FIM novaLinha
+#              | SE conjExpr ENTAO novaLinha conjInstrucao SENAO novaLinha conjInstrucao FIM novaLinha
 def p_condicional(t):
-    ''' condicional : SE conjExpr ENTAO NOVALINHA conjInstrucao FIM NOVALINHA
-                    | SE conjExpr ENTAO NOVALINHA conjInstrucao SENAO NOVALINHA conjInstrucao FIM NOVALINHA '''
+    ''' condicional : SE conjExpr ENTAO novaLinha conjInstrucao FIM novaLinha
+                    | SE conjExpr ENTAO novaLinha conjInstrucao SENAO novaLinha conjInstrucao FIM novaLinha '''
     if (len(t) == 8):
         t[0] = AST('condicionalSe', [t[2], t[5]])
     else:
         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
 
-# repeticao -> REPITA conjInstrucao ATE conjExpr NOVALINHA
+# repeticao -> REPITA conjInstrucao ATE conjExpr novaLinha
 def p_repeticao(t):
-    ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
+    ' repeticao : REPITA novaLinha conjInstrucao ATE conjExpr novaLinha'
     t[0] = AST('repeticao', [t[3], t[5]])
 
-# atribuicao -> ID RECEBE conjExpr NOVALINHA
+# atribuicao -> ID RECEBE conjExpr novaLinha
 def p_atribuicao(t):
-    ''' atribuicao : ID RECEBE conjExpr NOVALINHA
-                   | ID RECEBE chamaFuncao NOVALINHA '''
+    ''' atribuicao : ID RECEBE conjExpr novaLinha
+                   | ID RECEBE chamaFuncao novaLinha '''
     t[0] = AST('atribuicao', [t[3]], [t[1]])
 
-# leitura -> LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA
+# leitura -> LEIA ABREPARENTES ID FECHAPARENTES novaLinha
 def p_leitura(t):
-    ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
+    ' leitura : LEIA ABREPARENTES ID FECHAPARENTES novaLinha '
     t[0] = AST('leitura', [], [t[3]])
 
-# escreva -> ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
-#          | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA
+# escreva -> ESCREVA ABREPARENTES conjExpr FECHAPARENTES novaLinha
+#          | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES novaLinha
 def p_escreva(t):
-    ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
-                | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
+    ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES novaLinha
+                | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES novaLinha '''
     t[0] = AST('escreva', [t[3]])
 
-# retorna -> RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA
+# retorna -> RETORNA ABREPARENTES exprArit FECHAPARENTES novaLinha
 def p_retorna(t):
-    ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
+    ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES novaLinha '
     t[0] = AST('retorna', [t[3]])
 
 # conjExpr -> exprArit compara exprArit
@@ -238,6 +238,10 @@ def p_fator_1(t):
 def p_fator_2(t):
     ' fator : num '
     t[0] = AST('num', [t[1]])
+
+def p_novaLinha(t):
+    ''' novaLinha : NOVALINHA 
+                  | NOVALINHA novaLinha '''
 
 def p_fator_3(t):
     ' fator : ID '
