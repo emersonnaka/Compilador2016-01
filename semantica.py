@@ -136,7 +136,6 @@ class Semantica():
             print("Erro semântico: função '" + nó.folha[0] + "' não declarada")
             exit(1)
         qtdeParam = self.parametros(nó.filho[0])
-        print("Quantidade de parâmetros da função '" + nó.folha[0] + "': " + str(qtdeParam))
         if len(self.símbolos[nó.folha[0]][2]) != qtdeParam:
             print("Erro semântico: esperado '" + str(len(self.símbolos[nó.folha[0]][1])) + "' parâmetro(s) na função " + nó.folha[0])
             exit(1)
