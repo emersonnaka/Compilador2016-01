@@ -128,7 +128,7 @@ def p_instrucao(t):
                  | atribuicao
                  | leitura
                  | escreva
-                 | chamaFuncao
+                 | chamaFuncao NOVALINHA
                  | declaraVar
                  | retorna '''
     t[0] = AST('instrucao', [t[1]])
