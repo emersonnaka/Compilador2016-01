@@ -237,6 +237,8 @@ class Semantica():
             if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
                 print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
                 exit(1)
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
+                print("WARNING de atribuição: ID '" + nó.folha[0] + "' é do tipo '" + nó.filho[1].folha[0] + "' e função '" + nó.filho[0].folha[0] "' é do tipo '" +  self.símbolos[nó.filho[0].folha[0]][1] + "'")
             self.chamaFuncao(nó.filho[0])
         else:
             self.conjExpr(nó.filho[0])
