@@ -238,14 +238,18 @@ class Semantica():
                 print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
                 exit(1)
             if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
-                print("WARNING de atribuição: ID '" + nó.folha[0] + "' é do tipo '" + nó.filho[1].folha[0] + "' e função '" + nó.filho[0].folha[0] "' é do tipo '" +  self.símbolos[nó.filho[0].folha[0]][1] + "'")
+                print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                    self.símbolos[self.escopo + '.' + nó.folha[0]][1] + "' e está recebendo a função '" +
+                    nó.filho[0].folha[0] + "' do tipo " + self.símbolos[nó.filho[0].folha[0]][1])
             self.chamaFuncao(nó.filho[0])
         else:
             self.conjExpr(nó.filho[0])
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-            self.símbolos[self.escopo + '.' + nó.folha[0]][2] = True
+            if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
+                self.símbolos[self.escopo + '.' + nó.folha[0]][2] = True
         elif 'global.' + nó.folha[0] in self.símbolos.keys():
-            self.símbolos['global.' + nó.folha[0]][2] = True
+            if not(self.símbolos['global.' + nó.folha[0]][2]):
+                self.símbolos['global.' + nó.folha[0]][2] = True
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
@@ -364,6 +368,12 @@ class Semantica():
                 if not(self.símbolos['global.' + nó.folha[0]][2]):
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
+
+    def num(self, nó):
+        if nó.nome == 'n_inteiro':
+            return 'inteiro'
+        else:
+            return 'flutuante'
 
 if __name__ == '__main__':
     import sys
