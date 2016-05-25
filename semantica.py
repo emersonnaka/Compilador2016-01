@@ -186,9 +186,9 @@ class Semantica():
 #                  | retorna '''
 #     t[0] = AST('instrucao', [t[1]])
     def instrucao(self, nó):
-        if (nó.filho[0].nome == 'condicionalSe'):
+        if nó.filho[0].nome == 'condicionalSe':
             self.condicional(nó.filho[0])
-        if (nó.filho[0].nome == 'condicionalSenao'):
+        if nó.filho[0].nome == 'condicionalSenao':
             self.condicional(nó.filho[0])
         if nó.filho[0].nome == 'repeticao':
             self.repeticao(nó.filho[0])
@@ -237,13 +237,29 @@ class Semantica():
             if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
                 print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
                 exit(1)
-            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
-                print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
-                    self.símbolos[self.escopo + '.' + nó.folha[0]][1] + "' e está recebendo a função '" +
-                    nó.filho[0].folha[0] + "' do tipo " + self.símbolos[nó.filho[0].folha[0]][1])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
+                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                        self.símbolos[self.escopo + '.' + nó.folha[0]][1] + "' e está recebendo a função '" +
+                        nó.filho[0].folha[0] + "' do tipo '" + self.símbolos[nó.filho[0].folha[0]][1] + "'")
+            elif 'global.' + nó.folha[0] in self.símbolos.keys():
+                if self.símbolos['global.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
+                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                        self.símbolos['global.' + nó.folha[0]][1] + "' e está recebendo a função '" +
+                        nó.filho[0].folha[0] + "' do tipo '" + self.símbolos[nó.filho[0].folha[0]][1] + "'")
             self.chamaFuncao(nó.filho[0])
         else:
-            self.conjExpr(nó.filho[0])
+            tipo = self.conjExpr(nó.filho[0])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != tipo:
+                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                        self.símbolos[self.escopo + '.' + nó.folha[0]][1] +
+                        "' está atribuindo uma expressão do tipo '" + tipo + "'")
+            elif 'global.' + nó.folha[0] in self.símbolos.keys():
+                if self.símbolos['global.' + nó.folha[0]][1] != tipo:
+                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                        self.símbolos['global.' + nó.folha[0]][1] +
+                        "' está atribuindo uma expressão do tipo '" + tipo + "'")
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
                 self.símbolos[self.escopo + '.' + nó.folha[0]][2] = True
@@ -288,7 +304,7 @@ class Semantica():
             operador = self.compara(nó.filho[1])
             self.exprArit(nó.filho[2])
         else:
-            self.exprArit(nó.filho[0])
+            return self.exprArit(nó.filho[0])
 
 # def p_compara(t):
 #     ''' compara : MENOR
@@ -311,9 +327,9 @@ class Semantica():
         if len(nó.filho) == 3:
             self.exprArit(nó.filho[0])
             operador = self.soma(nó.filho[1])
-            self.termo(nó.filho[2])
+            return self.termo(nó.filho[2])
         else:
-            self.termo(nó.filho[0])
+            return self.termo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
@@ -333,9 +349,9 @@ class Semantica():
         if len(nó.filho) == 3:
             self.termo(nó.filho[0])
             operador = self.multi(nó.filho[1])
-            self.fator(nó.filho[2])
+            return self.fator(nó.filho[2])
         else:
-            self.fator(nó.filho[0])
+            return self.fator(nó.filho[0])
 
 # def p_multi(t):
 #     ''' multi : VEZES
@@ -356,6 +372,8 @@ class Semantica():
     def fator(self, nó):
         if nó.nome == 'fatorExprArit':
             self.exprArit(nó.filho[0])
+        if nó.nome == 'num':
+            return self.num(nó.filho[0])
         elif nó.nome == 'fatorID':
             if (self.escopo + '.' + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
                 print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
@@ -364,10 +382,12 @@ class Semantica():
                 if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
+                return self.símbolos[self.escopo + '.' + nó.folha[0]][1]
             elif 'global.' + nó.folha[0] in self.símbolos.keys():
                 if not(self.símbolos['global.' + nó.folha[0]][2]):
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
+                return self.símbolos['global.' + nó.folha[0]][1]
 
     def num(self, nó):
         if nó.nome == 'n_inteiro':
@@ -380,4 +400,4 @@ if __name__ == '__main__':
     code = open(sys.argv[1])
     s = Semantica(code.read())
     s.semanticaTopo()
-    print("Tabela de Simbolos:", s.símbolos)
+    print("Tabela de símbolos:", s.símbolos)

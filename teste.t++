@@ -34,8 +34,11 @@ vazio principal()
 	inteiro: n
 	inteiro: x
 	inteiro: r
+	flutuante: f
+	f:= 12.21
 	x := 9.9
-	n := 7
+	n := f
+	n := x
 	r := fazNada(5, 6)
 	fazNada(n, x)
 	leia(n)
