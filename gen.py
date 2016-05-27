@@ -11,18 +11,11 @@ class Gen:
         semantica.semanticaTopo()
         self.semantica = semantica.árvore
         self.optimization = optz
-        """ builder é uma instância de llvm.core.Builder e mantem o
-        controle do local atual para inserir instruções e tem métodos
-        para criar novas instruções. É inicializado sempre que
-        começar a gerar código para uma função"""
         self.construtor = None
         self.func = None
         self.símbolos = semantica.símbolos
         self.debug = debug
-        self.escopo = "main"
-        """ Cria um módulo que contém todas as funções e variáveis
-        globais em um pedaço de código, é a estrutura que o LLVM
-        usa para ter o código"""
+        self.escopo = 'global'
         self.modulo = ir.Module('programa')
         self.genTopo(self.semantica)
 
@@ -40,11 +33,14 @@ class Gen:
         if nó.nome == 'declaraVarGlobalPrograma':
             self.genDeclaraVarGlobal(nó.filho[0])
             self.genDeclaraFuncao(nó.filho[1])
+            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[2])
         elif nó.nome == 'declaraFuncaoPrograma':
             self.genDeclaraFuncao(nó.filho[0])
+            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[1])
         else:
+            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[0])
 
 # def p_declaraVarGlobal(t):
@@ -79,10 +75,12 @@ class Gen:
 #     ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA'
 #     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
     def genFuncaoPrincipal(self, nó):
+        self.escopo = nó.folha[0]
         tipo = ir.VoidType()
         função = ir.FunctionType(tipo, ())
         principal = ir.Function(self.modulo, função, name = nó.folha[1])
         bloco = principal.append_basic_block('entry')
+        self.construtor = ir.IRBuilder(bloco)
         self.construtor = ir.IRBuilder(bloco)
         self.genConjInstrucao(nó.filho[0])
 
@@ -92,10 +90,12 @@ class Gen:
 # Inicialmente, a chave do dicionário seria o tipo da função '.' id, entretanto, se o usuário declarasse
 # um ID com o tipo diferente, não daria erro. Sendo que o correto é acusar o erro
     def genFuncao(self, nó):
+        self.escopo = nó.folha[0]
         tipo = genTipo(nó.filho[0])
         função = ir.FunctionType(tipo, ())
         nomeFunção = ir.Function(self.modulo, função, name = nó.folha[0])
         bloco = nomeFunção.append_basic_block('entry')
+        self.construtor = ir.IRBuilder(bloco)
         self.genConjParametros(nó.filho[1])
         self.genConjInstrucao(nó.filho[2])
 
@@ -129,12 +129,14 @@ class Gen:
 #     else:
 #         t[0] = AST('conjParametrosEmpty', [])
     def genConjParametros(self, nó):
-        if nó.nome != 'conjParametrosEmpty':
-            tipo = genTipo(nó.filho[0])
+        tipos = []
+        if len(nó.filho) > 0:
+            tipo = self.getTipo(nó.filho[0])
             idVariável = nó.folha[0]
-            variável = construtor.alloca(tipo, name = idVariável)
-            if nó.nome == 'conjParametrosComp':
-                self.genConjParametros(nó.filho[1])
+            variaveis.append(tipo, idVariável)
+            if len(nó.filho) > 1:
+                tipos = tipos + self.genConjParametros(nó.filho[1])
+        return variaveis
 
 # def p_declaraVar(t):
 #     ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
@@ -142,13 +144,20 @@ class Gen:
     def genDeclaraVar(self, nó):
         tipo = genTipo(nó.filho[0])
         idVariável = nó.folha[0]
-        variável = construtor.alloca(tipo, name = idVariável)
+        if self.escopo == 'global':
+            ir.GlobalVariable(self.modulo, tipo, idVariável)
+        else:
+            variável = self.construtor.alloca(tipo, name = idVariável)
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
 #     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
     def genChamaFuncao(self, nó):
-
+        nomeFunção = nó.folha[0]
+        parametros = self.genConjParametros[nó.filho[0]]
+        chamaFunção = self.construtor.call(nomeFunção, parametros, name = 'call')
+        if self.símbolos[nó.folha[0]][1] != 'vazio':
+            return chamaFunção
 
 # def p_parametros(t):
 #     ''' parametros : parametros VIRGULA exprArit
@@ -242,7 +251,7 @@ class Gen:
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
-
+        
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
