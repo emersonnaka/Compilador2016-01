@@ -21,11 +21,9 @@ class Semantica():
         if self.árvore.nome == 'declaraVarGlobalPrograma':
             self.declaraVarGlobal(self.árvore.filho[0])
             self.declaraFuncao(self.árvore.filho[1])
-            self.escopo = 'principal'
             self.funcaoPrincipal(self.árvore.filho[2])
         elif self.árvore.nome == 'declaraFuncaoPrograma':
             self.declaraFuncao(self.árvore.filho[0])
-            self.escopo = 'principal'
             self.funcaoPrincipal(self.árvore.filho[1])
         else:
             self.funcaoPrincipal(self.árvore.filho[0])
@@ -62,6 +60,7 @@ class Semantica():
 #     ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA'
 #     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
     def funcaoPrincipal(self, nó):
+        self.escopo = 'principal'
         tipo = nó.folha[1]
         self.símbolos[nó.folha[1]] = ['funçãoPrincipal', tipo]
         self.conjInstrucao(nó.filho[0])
