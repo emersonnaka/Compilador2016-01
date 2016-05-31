@@ -109,7 +109,7 @@ class Semantica():
         if len(nó.filho) > 0:
             tipo = self.getTipo(nó.filho[0])
             variaveis.append(tipo)
-            self.símbolos[str(self.escopo + '.' + nó.folha[0])] = ['variável', tipo, True]
+            self.símbolos[str(self.escopo + '.' + nó.folha[0])] = ['variável', tipo, 0, True]
             if len(nó.filho) > 1:
                 variaveis = variaveis + self.conjParametros(nó.filho[1])
         return variaveis
@@ -125,7 +125,7 @@ class Semantica():
         if nó.folha[0] is self.símbolos.keys():
             print("Erro semântico: ID '" + nó.folha[0] + "' foi declarado como função")
             exit(1)
-        self.símbolos[self.escopo + '.' + nó.folha[0]] = ['variável', tipo, valor, False]
+        self.símbolos[self.escopo + '.' + nó.folha[0]] = ['variável', tipo, 0, False]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
