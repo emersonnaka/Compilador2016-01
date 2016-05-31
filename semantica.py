@@ -125,7 +125,7 @@ class Semantica():
         if nó.folha[0] is self.símbolos.keys():
             print("Erro semântico: ID '" + nó.folha[0] + "' foi declarado como função")
             exit(1)
-        self.símbolos[self.escopo + '.' + nó.folha[0]] = ['variável', tipo, False]
+        self.símbolos[self.escopo + '.' + nó.folha[0]] = ['variável', tipo, valor, False]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
@@ -261,10 +261,10 @@ class Semantica():
                         "' está atribuindo uma expressão do tipo '" + tipo + "'")
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
-                self.símbolos[self.escopo + '.' + nó.folha[0]][2] = True
+                self.símbolos[self.escopo + '.' + nó.folha[0]][3] = True
         elif 'global.' + nó.folha[0] in self.símbolos.keys():
             if not(self.símbolos['global.' + nó.folha[0]][2]):
-                self.símbolos['global.' + nó.folha[0]][2] = True
+                self.símbolos['global.' + nó.folha[0]][3] = True
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
@@ -378,12 +378,12 @@ class Semantica():
                 print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
                 exit(1)
             if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
+                if not(self.símbolos[self.escopo + '.' + nó.folha[0]][3]):
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
                 return self.símbolos[self.escopo + '.' + nó.folha[0]][1]
             elif 'global.' + nó.folha[0] in self.símbolos.keys():
-                if not(self.símbolos['global.' + nó.folha[0]][2]):
+                if not(self.símbolos['global.' + nó.folha[0]][3]):
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
                 return self.símbolos['global.' + nó.folha[0]][1]
