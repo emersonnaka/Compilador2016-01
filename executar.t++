@@ -1,0 +1,13 @@
+inteiro: a
+flutuante: b
+
+vazio ha()
+	inteiro: p
+fim
+
+vazio principal()
+	inteiro: n
+	inteiro: x
+	inteiro: r
+	flutuante: f
+fim
