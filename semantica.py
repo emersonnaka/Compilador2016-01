@@ -288,7 +288,10 @@ class Semantica():
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
     def retorna(self, nó):
-        self.exprArit(nó.filho[0])
+        tipo = self.exprArit(nó.filho[0])
+        if self.símbolos[self.escopo][1] != tipo:
+            print("WARNING: função '" + self.escopo + "' é do tipo '" + self.símbolos[self.escopo][1] +
+                "' e está retornando uma expressão do tipo '" + tipo + "'")
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
