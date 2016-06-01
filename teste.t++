@@ -3,6 +3,8 @@ inteiro:a
 
 vazio ha()
 	inteiro: p
+	p := 213
+	retorna(p)
 fim
 
 flutuante fazNada (inteiro: a, flutuante: b)
@@ -12,7 +14,7 @@ flutuante fazNada (inteiro: a, flutuante: b)
 	se b >= 0 então
 		retorna(1)
 	senão
-		retorna(0)
+		retorna(3.12)
 	fim
 fim
 
