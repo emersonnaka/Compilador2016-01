@@ -15,4 +15,5 @@ vazio principal()
 	n := 9
 	f := 3.14
 	x := ha()
+	a := 1243
 fim
