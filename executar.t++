@@ -3,6 +3,8 @@ flutuante: b
 
 inteiro ha()
 	inteiro: p
+	p := 3
+	retorna(3)
 fim
 
 vazio principal()
@@ -11,7 +13,6 @@ vazio principal()
 	inteiro: r
 	flutuante: f
 	n := 9
-	x := 0
-	r := 12
 	f := 3.14
+	x := ha()
 fim
