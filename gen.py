@@ -151,10 +151,10 @@ class Gen:
 #     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
     def genChamaFuncao(self, nó):
         nomeFunção = nó.folha[0]
-        parametros = self.genParametros[nó.filho[0]]
-        chamaFunção = self.construtor.call(nomeFunção, parametros, name = 'call')
-        if self.símbolos[nó.folha[0]][1] != 'vazio':
-            return chamaFunção
+        tipos = self.genParametros(nó.filho[0])
+        função = self.modulo.get_global(nomeFunção)
+        chamaFunção = self.construtor.call(função, tipos, 'call')
+        return chamaFunção
 
 # def p_parametros(t):
 #     ''' parametros : parametros VIRGULA exprArit
@@ -168,14 +168,16 @@ class Gen:
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
     def genParametros(self, nó):
-        parametros = []
-        while node:
-            parametros.append(self.gen_expr(node.child[0]))
+        tipos = []
+        if nó.nome == 'parametrosEmpty':
+            return tipos
+        while nó:
+            tipos.append(self.genExprArit(nó.filho[0]))
             if len(nó.filho) > 1:
                 nó = nó.filho[1]
             else:
                 break
-        return parametros
+        return tipos
 
 # def p_conjInstrucao(t):
 #     ''' conjInstrucao : conjInstrucao instrucao
@@ -243,9 +245,9 @@ class Gen:
         if nó.filho[0].nome == 'conjExpr':
             resultado = self.genConjExpr(nó.filho[0])
             self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
-# if nó.filho[0].nome == 'chamaFuncao':
-#     chamaFunção = self.genChamaFuncao(nó.filho[0])
-#     self.construtor.store(chamaFunção, nó.folha[0])
+        else:
+            chamaFunção = self.genChamaFuncao(nó.filho[0])
+            self.construtor.store(chamaFunção, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
@@ -263,8 +265,12 @@ class Gen:
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
-# def genRetorna(self, nó):
-        
+    def genRetorna(self, nó):
+        expressão = self.genExprArit(nó.filho[0])
+        if expressão is self.símbolos.keys():
+            pass
+        else:
+            return self.construtor.ret(expressão)
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
