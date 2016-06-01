@@ -244,10 +244,16 @@ class Gen:
     def genAtribuicao(self, nó):
         if nó.filho[0].nome == 'conjExpr':
             resultado = self.genConjExpr(nó.filho[0])
-            self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            else:
+                self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
         else:
             chamaFunção = self.genChamaFuncao(nó.filho[0])
-            self.construtor.store(chamaFunção, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                self.construtor.store(chamaFunção, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            else:
+                self.construtor.store(chamaFunção, self.símbolos['global.' + nó.folha[0]][2])
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
