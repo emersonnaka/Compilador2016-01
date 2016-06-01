@@ -273,8 +273,10 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
-        if expressão is self.símbolos.keys():
-            pass
+        print(expressão)
+        if self.escopo + '.' + expressão in self.símbolos.keys():
+            valor = self.construtor.load(self.símbolos[self.escopo + '.' + expressão][2])
+            return self.construtor.ret(valor)
         else:
             return self.construtor.ret(expressão)
 
@@ -307,15 +309,21 @@ class Gen:
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
     def genExprArit(self, nó):
-        if len(nó.filho) == 1:
+        if len(nó.filho) == 3:
+            esquerda = self.genExprArit(nó.filho[0])
+            operador = self.genSoma(nó.filho[1])
+            direita = self.genTermo(nó.filho[2])
+        else:
             return self.genTermo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
 #              | MENOS '''
 #     t[0] = AST('maisMenos', [], [t[1]])
-    # def genSoma(self, nó):
-
+    def genSoma(self, nó):
+        if nó.folha == '+':
+            return '+'
+        return '-'
 
 # def p_termo(t):
 #     ''' termo : termo multi fator
@@ -332,8 +340,10 @@ class Gen:
 #     ''' multi : VEZES
 #               | DIVIDIR '''
 #     t[0] = AST('vezesDividir', [], [t[1]])
-    # def genMulti(self, nó):
-
+    def genMulti(self, nó):
+        if nó.folha == '*':
+            return '*'
+        return '/'
 
 # def p_fator_1(t):
 #     ' fator : ABREPARENTES exprArit FECHAPARENTES '
@@ -345,9 +355,13 @@ class Gen:
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
     def genFator(self, nó):
-        if nó.nome == 'num':
+        if nó.nome == 'fatorExprArit':
+            return self.genExprArit(nó.filho[0])
+        elif nó.nome == 'num':
             tipo = nó.filho[0].nome
             if tipo == 'n_inteiro':
                 return ir.Constant(ir.IntType(32), nó.filho[0].folha[0])
             else:
                 return ir.Constant(ir.FloatType(), nó.filho[0].folha[0])
+        else:
+            return nó.folha[0]
