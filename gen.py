@@ -1,4 +1,4 @@
-# http://llvmlite.readthedocs.io/en/latest/binding/index.html
+# http://llvmlite.readthedocs.io/en/latest/index.html
 from llvmlite import ir, binding
 from semantica import Semantica
 from sintatica import *
@@ -6,18 +6,19 @@ from sys import exit
 
 class Gen:
 
-    def __init__(self, code, optz = False, debug = False):
+    def __init__(self, code):
         semantica = Semantica(code.read())
         semantica.semanticaTopo()
         self.semantica = semantica.árvore
-        self.optimization = optz
+        # self.optimization = optz
         self.construtor = None
         self.func = None
         self.símbolos = semantica.símbolos
-        self.debug = debug
+        # self.debug = debug
         self.escopo = 'global'
         self.modulo = ir.Module('programa')
         self.genTopo(self.semantica)
+        print(self.modulo)
 
 # def p_programa(t):
 # ''' programa : declaraVarGlobal declaraFuncao funcaoPrincipal
@@ -33,14 +34,11 @@ class Gen:
         if nó.nome == 'declaraVarGlobalPrograma':
             self.genDeclaraVarGlobal(nó.filho[0])
             self.genDeclaraFuncao(nó.filho[1])
-            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[2])
         elif nó.nome == 'declaraFuncaoPrograma':
             self.genDeclaraFuncao(nó.filho[0])
-            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[1])
         else:
-            self.escopo = 'principal'
             self.genFuncaoPrincipal(nó.filho[0])
 
 # def p_declaraVarGlobal(t):
@@ -75,12 +73,11 @@ class Gen:
 #     ' funcaoPrincipal : VAZIO PRINCIPAL ABREPARENTES FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA'
 #     t[0] = AST('funcaoPrincipal', [t[6]], [t[1], t[2]])
     def genFuncaoPrincipal(self, nó):
-        self.escopo = nó.folha[0]
+        self.escopo = nó.folha[1]
         tipo = ir.VoidType()
         função = ir.FunctionType(tipo, ())
         principal = ir.Function(self.modulo, função, name = nó.folha[1])
         bloco = principal.append_basic_block('entry')
-        self.construtor = ir.IRBuilder(bloco)
         self.construtor = ir.IRBuilder(bloco)
         self.genConjInstrucao(nó.filho[0])
 
@@ -91,7 +88,7 @@ class Gen:
 # um ID com o tipo diferente, não daria erro. Sendo que o correto é acusar o erro
     def genFuncao(self, nó):
         self.escopo = nó.folha[0]
-        tipo = genTipo(nó.filho[0])
+        tipo = self.genTipo(nó.filho[0])
         função = ir.FunctionType(tipo, ())
         nomeFunção = ir.Function(self.modulo, função, name = nó.folha[0])
         bloco = nomeFunção.append_basic_block('entry')
@@ -133,21 +130,21 @@ class Gen:
         if len(nó.filho) > 0:
             tipo = self.getTipo(nó.filho[0])
             idVariável = nó.folha[0]
-            variaveis.append(tipo, idVariável)
+            tipos.append(tipo, idVariável)
             if len(nó.filho) > 1:
                 tipos = tipos + self.genConjParametros(nó.filho[1])
-        return variaveis
+        return tipos
 
 # def p_declaraVar(t):
 #     ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
 #     t[0] = AST('declaraVar', [t[1]], [t[3]])
     def genDeclaraVar(self, nó):
-        tipo = genTipo(nó.filho[0])
+        tipo = self.genTipo(nó.filho[0])
         idVariável = nó.folha[0]
         if self.escopo == 'global':
-            ir.GlobalVariable(self.modulo, tipo, idVariável)
+            self.símbolos['global.' + idVariável][2] = ir.GlobalVariable(self.modulo, tipo, idVariável)
         else:
-            variável = self.construtor.alloca(tipo, name = idVariável)
+            self.símbolos[self.escopo + '.' + idVariável][2] = self.construtor.alloca(tipo, name = idVariável)
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
@@ -170,7 +167,7 @@ class Gen:
 #             t[0] = AST('parametrosExprArit', [t[1]])
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
-    def genParametros(self, nó):
+    # def genParametros(self, nó):
 
 
 # def p_conjInstrucao(t):
@@ -181,7 +178,11 @@ class Gen:
 #     else:
 #         t[0] = AST('conjInstrucao', [t[1]])
     def genConjInstrucao(self, nó):
-
+        if nó.nome == 'conjInstrucaoComp':
+            self.genConjInstrucao(nó.filho[0])
+            self.genInstrucao(nó.filho[1])
+        else:
+            self.genInstrucao(nó.filho[0])
 
 # def p_instrucao(t):
 #     '''instrucao : condicional
@@ -218,39 +219,39 @@ class Gen:
 #         t[0] = AST('condicionalSe', [t[2], t[5]])
 #     else:
 #         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
-    def genCondicional(self, nó):
+    # def genCondicional(self, nó):
 
 
 # def p_repeticao(t):
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
-    def genRepeticao(self, nó):
+    # def genRepeticao(self, nó):
 
 
 # def p_atribuicao(t):
 #     ''' atribuicao : ID RECEBE conjExpr NOVALINHA
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
-    def genAtribuicao(self, nó):
+    # def genAtribuicao(self, nó):
 
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
-    def genLeitura(self, nó):
+    # def genLeitura(self, nó):
 
 
 # def p_escreva(t):
 #     ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
 #                 | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
 #     t[0] = AST('escreva', [t[3]])
-    def genEscreva(self, nó):
+    # def genEscreva(self, nó):
 
 
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
-    def genRetorna(self, nó):
+    # def genRetorna(self, nó):
         
 
 # def p_conjExpr(t):
@@ -260,7 +261,7 @@ class Gen:
 #         t[0] = AST('conjExprComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('conjExpr', [t[1]])
-    def genConjExpr(self, nó):
+    # def genConjExpr(self, nó):
 
 
 # def p_compara(t):
@@ -270,7 +271,7 @@ class Gen:
 #                 | MAIORIGUAL
 #                 | IGUAL '''
 #     t[0] = AST('compara', [], [t[1]])
-    def genCompara(self, nó):
+    # def genCompara(self, nó):
 
 
 # def p_exprArit(t):
@@ -280,14 +281,14 @@ class Gen:
 #         t[0] = AST('exprAritComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
-    def genExprArit(self, nó):
+    # def genExprArit(self, nó):
 
 
 # def p_soma(t):
 #     ''' soma : MAIS
 #              | MENOS '''
 #     t[0] = AST('maisMenos', [], [t[1]])
-    def genSoma(self, nó):
+    # def genSoma(self, nó):
 
 
 # def p_termo(t):
@@ -297,14 +298,14 @@ class Gen:
 #         t[0] = AST('termoComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('termo', [t[1]])
-    def genTermo(self, nó):
+    # def genTermo(self, nó):
 
 
 # def p_multi(t):
 #     ''' multi : VEZES
 #               | DIVIDIR '''
 #     t[0] = AST('vezesDividir', [], [t[1]])
-    def genMulti(self, nó):
+    # def genMulti(self, nó):
 
 
 # def p_fator_1(t):
@@ -316,4 +317,4 @@ class Gen:
 # def p_fator_3(t):
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
-    def genFator(self, nó):
+    # def genFator(self, nó):
