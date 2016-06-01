@@ -126,14 +126,14 @@ class Gen:
 #     else:
 #         t[0] = AST('conjParametrosEmpty', [])
     def genConjParametros(self, nó):
-        tipos = []
+        parametros = []
         if len(nó.filho) > 0:
             tipo = self.getTipo(nó.filho[0])
             idVariável = nó.folha[0]
-            tipos.append(tipo, idVariável)
+            parametros.append(tipo, idVariável)
             if len(nó.filho) > 1:
-                tipos = tipos + self.genConjParametros(nó.filho[1])
-        return tipos
+                parametros = parametros + self.genConjParametros(nó.filho[1])
+        return parametros
 
 # def p_declaraVar(t):
 #     ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
@@ -151,7 +151,7 @@ class Gen:
 #     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
     def genChamaFuncao(self, nó):
         nomeFunção = nó.folha[0]
-        parametros = self.genConjParametros[nó.filho[0]]
+        parametros = self.genParametros[nó.filho[0]]
         chamaFunção = self.construtor.call(nomeFunção, parametros, name = 'call')
         if self.símbolos[nó.folha[0]][1] != 'vazio':
             return chamaFunção
@@ -167,8 +167,15 @@ class Gen:
 #             t[0] = AST('parametrosExprArit', [t[1]])
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
-    # def genParametros(self, nó):
-
+    def genParametros(self, nó):
+        parametros = []
+        while node:
+            parametros.append(self.gen_expr(node.child[0]))
+            if len(nó.filho) > 1:
+                nó = nó.filho[1]
+            else:
+                break
+        return parametros
 
 # def p_conjInstrucao(t):
 #     ''' conjInstrucao : conjInstrucao instrucao
@@ -219,39 +226,44 @@ class Gen:
 #         t[0] = AST('condicionalSe', [t[2], t[5]])
 #     else:
 #         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
-    # def genCondicional(self, nó):
+# def genCondicional(self, nó):
 
 
 # def p_repeticao(t):
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
-    # def genRepeticao(self, nó):
+# def genRepeticao(self, nó):
 
 
 # def p_atribuicao(t):
 #     ''' atribuicao : ID RECEBE conjExpr NOVALINHA
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
-    # def genAtribuicao(self, nó):
-
+    def genAtribuicao(self, nó):
+        if nó.filho[0].nome == 'conjExpr':
+            resultado = self.genConjExpr(nó.filho[0])
+            self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+# if nó.filho[0].nome == 'chamaFuncao':
+#     chamaFunção = self.genChamaFuncao(nó.filho[0])
+#     self.construtor.store(chamaFunção, nó.folha[0])
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
-    # def genLeitura(self, nó):
+# def genLeitura(self, nó):
 
 
 # def p_escreva(t):
 #     ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
 #                 | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
 #     t[0] = AST('escreva', [t[3]])
-    # def genEscreva(self, nó):
+# def genEscreva(self, nó):
 
 
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
 #     t[0] = AST('retorna', [t[3]])
-    # def genRetorna(self, nó):
+# def genRetorna(self, nó):
         
 
 # def p_conjExpr(t):
@@ -261,8 +273,9 @@ class Gen:
 #         t[0] = AST('conjExprComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('conjExpr', [t[1]])
-    # def genConjExpr(self, nó):
-
+    def genConjExpr(self, nó):
+        if len(nó.filho) == 1:
+            return self.genExprArit(nó.filho[0])
 
 # def p_compara(t):
 #     ''' compara : MENOR
@@ -271,7 +284,7 @@ class Gen:
 #                 | MAIORIGUAL
 #                 | IGUAL '''
 #     t[0] = AST('compara', [], [t[1]])
-    # def genCompara(self, nó):
+# def genCompara(self, nó):
 
 
 # def p_exprArit(t):
@@ -281,8 +294,9 @@ class Gen:
 #         t[0] = AST('exprAritComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
-    # def genExprArit(self, nó):
-
+    def genExprArit(self, nó):
+        if len(nó.filho) == 1:
+            return self.genTermo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
@@ -298,8 +312,9 @@ class Gen:
 #         t[0] = AST('termoComp', [t[1], t[2], t[3]])
 #     else:
 #         t[0] = AST('termo', [t[1]])
-    # def genTermo(self, nó):
-
+    def genTermo(self, nó):
+        if len(nó.filho) == 1:
+            return self.genFator(nó.filho[0])
 
 # def p_multi(t):
 #     ''' multi : VEZES
@@ -317,4 +332,10 @@ class Gen:
 # def p_fator_3(t):
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
-    # def genFator(self, nó):
+    def genFator(self, nó):
+        if nó.nome == 'num':
+            tipo = nó.filho[0].nome
+            if tipo == 'n_inteiro':
+                return ir.Constant(ir.IntType(32), nó.filho[0].folha[0])
+            else:
+                return ir.Constant(ir.FloatType(), nó.filho[0].folha[0])
