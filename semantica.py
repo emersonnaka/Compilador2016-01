@@ -135,9 +135,14 @@ class Semantica():
             print("Erro semântico: função '" + nó.folha[0] + "' não declarada")
             exit(1)
         qtdeParam = self.parametros(nó.filho[0])
-        if len(self.símbolos[nó.folha[0]][2]) != qtdeParam:
-            print("Erro semântico: esperado '" + str(len(self.símbolos[nó.folha[0]][1])) + "' parâmetro(s) na função " + nó.folha[0])
+        if len(self.símbolos[nó.folha[0]][2]) != len(qtdeParam):
+            print("Erro semântico: esperado '" + str(len(self.símbolos[nó.folha[0]][2])) +
+                "' parâmetro(s) na função '" + nó.folha[0] + "'")
             exit(1)
+        if self.símbolos[nó.folha[0]][2] != qtdeParam:
+            print("WARNING chamada de função: espera parâmetros dos tipos " + str(self.símbolos[nó.folha[0]][2]) +
+                " e está sendo passado " + str(qtdeParam) + " na função '"  + nó.folha[0] + "'")
+
 
 # def p_parametros(t):
 #     ''' parametros : parametros VIRGULA exprArit
@@ -151,14 +156,13 @@ class Semantica():
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
     def parametros(self, nó):
+        tipos = []
         if len(nó.filho) > 1:
-            self.exprArit(nó.filho[1])
-            return self.parametros(nó.filho[0]) + 1 
+            tipos.append(self.exprArit(nó.filho[1]))
+            tipos = tipos + self.parametros(nó.filho[0])
         elif len(nó.filho) == 1:
-            self.exprArit(nó.filho[0])
-            return 1
-        else:
-            return 0
+            tipos.append(self.exprArit(nó.filho[0]))
+        return tipos
 
 # def p_conjInstrucao(t):
 #     ''' conjInstrucao : conjInstrucao instrucao
