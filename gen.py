@@ -89,7 +89,8 @@ class Gen:
     def genFuncao(self, nó):
         self.escopo = nó.folha[0]
         tipo = self.genTipo(nó.filho[0])
-        função = ir.FunctionType(tipo, ())
+        parametros = self.genConjParametros(nó.filho[1])
+        função = ir.FunctionType(tipo, parametros)
         nomeFunção = ir.Function(self.modulo, função, name = nó.folha[0])
         bloco = nomeFunção.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
@@ -128,9 +129,10 @@ class Gen:
     def genConjParametros(self, nó):
         parametros = []
         if len(nó.filho) > 0:
-            tipo = self.getTipo(nó.filho[0])
-            idVariável = nó.folha[0]
-            parametros.append(tipo, idVariável)
+            tipo = self.genTipo(nó.filho[0])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                self.símbolos[self.escopo + '.' + nó.folha[0]][2] = self.construtor.alloca(tipo, name = nó.folha[0])
+            parametros.append(tipo)
             if len(nó.filho) > 1:
                 parametros = parametros + self.genConjParametros(nó.filho[1])
         return parametros
@@ -169,14 +171,11 @@ class Gen:
 #             t[0] = AST('parametrosEmpty', [])
     def genParametros(self, nó):
         tipos = []
-        if nó.nome == 'parametrosEmpty':
-            return tipos
-        while nó:
+        if len(nó.filho) > 1:
+            tipos.append(self.genExprArit(nó.filho[1]))
+            tipos = tipos + self.genParametros(nó.filho[0])
+        elif len(nó.filho) == 1:
             tipos.append(self.genExprArit(nó.filho[0]))
-            if len(nó.filho) > 1:
-                nó = nó.filho[1]
-            else:
-                break
         return tipos
 
 # def p_conjInstrucao(t):
@@ -244,16 +243,15 @@ class Gen:
     def genAtribuicao(self, nó):
         if nó.filho[0].nome == 'conjExpr':
             resultado = self.genConjExpr(nó.filho[0])
+
             if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
+                    resultado = self.construtor.fptosi(resultado, ir.IntType(32))
                 self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
             else:
                 self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
-        else:
-            chamaFunção = self.genChamaFuncao(nó.filho[0])
-            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                self.construtor.store(chamaFunção, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
-            else:
-                self.construtor.store(chamaFunção, self.símbolos['global.' + nó.folha[0]][2])
+        # else:
+            
 
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
@@ -273,10 +271,10 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
-        print(expressão)
-        if self.escopo + '.' + expressão in self.símbolos.keys():
-            valor = self.construtor.load(self.símbolos[self.escopo + '.' + expressão][2])
-            return self.construtor.ret(valor)
+        if isinstance(expressão, str):
+            if self.escopo + '.' + expressão in self.símbolos.keys():
+                valor = self.construtor.load(self.símbolos[self.escopo + '.' + expressão][2])
+                return self.construtor.ret(valor)
         else:
             return self.construtor.ret(expressão)
 
@@ -288,8 +286,7 @@ class Gen:
 #     else:
 #         t[0] = AST('conjExpr', [t[1]])
     def genConjExpr(self, nó):
-        if len(nó.filho) == 1:
-            return self.genExprArit(nó.filho[0])
+        return self.genExprArit(nó.filho[0])
 
 # def p_compara(t):
 #     ''' compara : MENOR
@@ -298,8 +295,19 @@ class Gen:
 #                 | MAIORIGUAL
 #                 | IGUAL '''
 #     t[0] = AST('compara', [], [t[1]])
-# def genCompara(self, nó):
+    def genCompara(self, nó):
+        if nó.folha[0] == '<':
+            return '<'
+        elif nó.folha[0] == '>':
+            return '>'
+        elif nó.folha[0] == '<=':
+            return '<='
+        elif nó.folha[0] == '>=':
+            return '>='
+        elif nó.folha[0] == '=':
+            return '='
 
+    
 
 # def p_exprArit(t):
 #     ''' exprArit : exprArit soma termo 
@@ -309,19 +317,29 @@ class Gen:
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
     def genExprArit(self, nó):
-        if len(nó.filho) == 3:
-            esquerda = self.genExprArit(nó.filho[0])
-            operador = self.genSoma(nó.filho[1])
-            direita = self.genTermo(nó.filho[2])
-        else:
-            return self.genTermo(nó.filho[0])
+        # if len(nó.filho) == 3:
+        #     esquerda = self.genExprArit(nó.filho[0])
+        #     operador = self.genSoma(nó.filho[1])
+        #     direita = self.genTermo(nó.filho[2])
+            
+        #     if isinstance(esquerda, str):
+        #         esquerda = self.genCarregaId(esquerda)
+        #     if isinstance(direita, str):
+        #         direita = self.genCarregaId(direita)
+
+        #     if operador == '+':
+        #         return self.construtor.add(esquerda, direita, name='add')
+        #     else:
+        #         return self.construtor.sub(esquerda, direita, name='sub')
+        # else:
+        return self.genTermo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
 #              | MENOS '''
 #     t[0] = AST('maisMenos', [], [t[1]])
     def genSoma(self, nó):
-        if nó.folha == '+':
+        if nó.folha[0] == '+':
             return '+'
         return '-'
 
@@ -333,15 +351,29 @@ class Gen:
 #     else:
 #         t[0] = AST('termo', [t[1]])
     def genTermo(self, nó):
-        if len(nó.filho) == 1:
-            return self.genFator(nó.filho[0])
+        # if len(nó.filho) == 3:
+        #     esquerda = self.genTermo(nó.filho[0])
+        #     operador = self.genMulti(nó.filho[1])
+        #     direita = self.genFator(nó.filho[2])
+
+        #     if isinstance(esquerda, str):
+        #         esquerda = self.genCarregaId(esquerda)
+        #     if isinstance(direita, str):
+        #         direita = self.genCarregaId(direita)
+
+        #     if operador == '*':
+        #         return self.construtor.mul(esquerda, direita, name='mul')
+        #     else:
+        #         return self.construtor.sdiv(esquerda, direita, name='div')
+        # else:
+        return self.genFator(nó.filho[0])
 
 # def p_multi(t):
 #     ''' multi : VEZES
 #               | DIVIDIR '''
 #     t[0] = AST('vezesDividir', [], [t[1]])
     def genMulti(self, nó):
-        if nó.folha == '*':
+        if nó.folha[0] == '*':
             return '*'
         return '/'
 
@@ -358,10 +390,15 @@ class Gen:
         if nó.nome == 'fatorExprArit':
             return self.genExprArit(nó.filho[0])
         elif nó.nome == 'num':
-            tipo = nó.filho[0].nome
-            if tipo == 'n_inteiro':
-                return ir.Constant(ir.IntType(32), nó.filho[0].folha[0])
-            else:
-                return ir.Constant(ir.FloatType(), nó.filho[0].folha[0])
+            return ir.Constant(ir.FloatType(), float(nó.filho[0].folha[0]))
         else:
-            return nó.folha[0]
+            valor = self.genCarregaId(nó.folha[0])
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro' or self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
+                return self.construtor.sitofp(valor, ir.FloatType())
+            return valor
+
+    def genCarregaId(self, idVariável):
+        if self.escopo + '.' + idVariável in self.símbolos.keys():
+            return self.construtor.load(self.símbolos[self.escopo + '.' + idVariável][2])
+        elif 'global.' + idVariável in self.símbolos.keys():
+            return self.construtor.load(self.símbolos['global.' + idVariável][2])
