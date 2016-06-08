@@ -1,4 +1,5 @@
 # http://llvmlite.readthedocs.io/en/latest/index.html
+# http://llvm.org/docs/tutorial/
 from llvmlite import ir, binding
 from semantica import Semantica
 from sintatica import *
@@ -241,7 +242,7 @@ class Gen:
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
     def genAtribuicao(self, nó):
-        if nó.filho[0].nome == 'conjExpr':
+        if nó.filho[0].nome == 'conjExpr' or nó.filho[0].nome == 'conjExprComp':
             resultado = self.genConjExpr(nó.filho[0])
         else:
             resultado = self.genChamaFuncao(nó.filho[0])
@@ -283,12 +284,10 @@ class Gen:
 #         t[0] = AST('conjExpr', [t[1]])
     def genConjExpr(self, nó):
         if len(nó.filho) == 3:
-            print("conjExprComp")
             esquerda = self.genExprArit(nó.filho[0])
             operador = self.genCompara(nó.filho[1])
             direita = self.genExprArit(nó.filho[2])
 
-            print(operador)
             if operador == '<':
                 return self.construtor.fcmp_unordered('<', esquerda, direita, 'fcmpMenor')
             elif operador == '>':
@@ -312,7 +311,6 @@ class Gen:
 #     t[0] = AST('compara', [], [t[1]])
     def genCompara(self, nó):
         return nó.folha[0]
-
 # def p_exprArit(t):
 #     ''' exprArit : exprArit soma termo 
 #                  | termo '''
