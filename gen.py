@@ -286,7 +286,17 @@ class Gen:
 #     else:
 #         t[0] = AST('conjExpr', [t[1]])
     def genConjExpr(self, nó):
-        return self.genExprArit(nó.filho[0])
+        if len(nó.filho) == 3:
+            esquerda = self.genExprArit(nó.filho[0])
+            operador = self.genCompara(nó.filho[1])
+            direita = self.genExprArit(nó.filho[2])
+
+            if operador == '=':
+                return self.construtor.fcmp_unordered('==', esquerda, direita, 'fcmp')
+            return self.construtor.fcmp_unordered(operador, esquerda, direita, 'fcmp')
+
+        else:
+            return self.genExprArit(nó.filho[0])
 
 # def p_compara(t):
 #     ''' compara : MENOR
@@ -296,18 +306,7 @@ class Gen:
 #                 | IGUAL '''
 #     t[0] = AST('compara', [], [t[1]])
     def genCompara(self, nó):
-        if nó.folha[0] == '<':
-            return '<'
-        elif nó.folha[0] == '>':
-            return '>'
-        elif nó.folha[0] == '<=':
-            return '<='
-        elif nó.folha[0] == '>=':
-            return '>='
-        elif nó.folha[0] == '=':
-            return '='
-
-    
+        return nó.folha[0]
 
 # def p_exprArit(t):
 #     ''' exprArit : exprArit soma termo 
@@ -317,31 +316,24 @@ class Gen:
 #     else:
 #         t[0] = AST('exprArit', [t[1]])
     def genExprArit(self, nó):
-        # if len(nó.filho) == 3:
-        #     esquerda = self.genExprArit(nó.filho[0])
-        #     operador = self.genSoma(nó.filho[1])
-        #     direita = self.genTermo(nó.filho[2])
-            
-        #     if isinstance(esquerda, str):
-        #         esquerda = self.genCarregaId(esquerda)
-        #     if isinstance(direita, str):
-        #         direita = self.genCarregaId(direita)
+        if len(nó.filho) == 3:
+            esquerda = self.genExprArit(nó.filho[0])
+            operador = self.genSoma(nó.filho[1])
+            direita = self.genTermo(nó.filho[2])
 
-        #     if operador == '+':
-        #         return self.construtor.add(esquerda, direita, name='add')
-        #     else:
-        #         return self.construtor.sub(esquerda, direita, name='sub')
-        # else:
-        return self.genTermo(nó.filho[0])
+            if operador == '+':
+                return self.construtor.fadd(esquerda, direita, name='add')
+            return self.construtor.fsub(esquerda, direita, name='sub')
+
+        else:
+            return self.genTermo(nó.filho[0])
 
 # def p_soma(t):
 #     ''' soma : MAIS
 #              | MENOS '''
 #     t[0] = AST('maisMenos', [], [t[1]])
     def genSoma(self, nó):
-        if nó.folha[0] == '+':
-            return '+'
-        return '-'
+        return nó.folha[0]
 
 # def p_termo(t):
 #     ''' termo : termo multi fator
@@ -351,31 +343,24 @@ class Gen:
 #     else:
 #         t[0] = AST('termo', [t[1]])
     def genTermo(self, nó):
-        # if len(nó.filho) == 3:
-        #     esquerda = self.genTermo(nó.filho[0])
-        #     operador = self.genMulti(nó.filho[1])
-        #     direita = self.genFator(nó.filho[2])
+        if len(nó.filho) == 3:
+            esquerda = self.genTermo(nó.filho[0])
+            operador = self.genMulti(nó.filho[1])
+            direita = self.genFator(nó.filho[2])
 
-        #     if isinstance(esquerda, str):
-        #         esquerda = self.genCarregaId(esquerda)
-        #     if isinstance(direita, str):
-        #         direita = self.genCarregaId(direita)
+            if operador == '*':
+                return self.construtor.mul(esquerda, direita, name='mul')
+            return self.construtor.sdiv(esquerda, direita, name='div')
 
-        #     if operador == '*':
-        #         return self.construtor.mul(esquerda, direita, name='mul')
-        #     else:
-        #         return self.construtor.sdiv(esquerda, direita, name='div')
-        # else:
-        return self.genFator(nó.filho[0])
+        else:
+            return self.genFator(nó.filho[0])
 
 # def p_multi(t):
 #     ''' multi : VEZES
 #               | DIVIDIR '''
 #     t[0] = AST('vezesDividir', [], [t[1]])
     def genMulti(self, nó):
-        if nó.folha[0] == '*':
-            return '*'
-        return '/'
+        return nó.folha[0]
 
 # def p_fator_1(t):
 #     ' fator : ABREPARENTES exprArit FECHAPARENTES '
