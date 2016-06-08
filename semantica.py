@@ -306,9 +306,14 @@ class Semantica():
 #         t[0] = AST('conjExpr', [t[1]])
     def conjExpr(self, nó):
         if len(nó.filho) == 3:
-            self.exprArit(nó.filho[0])
+            esquerda = self.exprArit(nó.filho[0])
             operador = self.compara(nó.filho[1])
-            self.exprArit(nó.filho[2])
+            direita = self.exprArit(nó.filho[2])
+
+            if(esquerda == direita):
+                return esquerda
+            return 'flutuante'
+
         else:
             return self.exprArit(nó.filho[0])
 
@@ -331,9 +336,13 @@ class Semantica():
 #         t[0] = AST('exprArit', [t[1]])
     def exprArit(self, nó):
         if len(nó.filho) == 3:
-            self.exprArit(nó.filho[0])
+            esquerda =self.exprArit(nó.filho[0])
             operador = self.soma(nó.filho[1])
-            return self.termo(nó.filho[2])
+            direita = self.termo(nó.filho[2])
+
+            if(esquerda == direita):
+                return esquerda
+            return 'flutuante'
         else:
             return self.termo(nó.filho[0])
 
@@ -353,9 +362,14 @@ class Semantica():
 #         t[0] = AST('termo', [t[1]])
     def termo(self, nó):
         if len(nó.filho) == 3:
-            self.termo(nó.filho[0])
+            esquerda = self.termo(nó.filho[0])
             operador = self.multi(nó.filho[1])
-            return self.fator(nó.filho[2])
+            direita = self.fator(nó.filho[2])
+
+            if(esquerda == direita):
+                return esquerda
+            return 'flutuante'
+
         else:
             return self.fator(nó.filho[0])
 
