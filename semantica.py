@@ -78,7 +78,6 @@ class Semantica():
             print("Erro semântico: função '" + nó.folha[0] + "'já foi declarado")
             exit(1)
         self.símbolos[nó.folha[0]] = ["função", tipo, qtdeParam]
-        self.conjParametros(nó.filho[1])
         self.conjInstrucao(nó.filho[2])
 
 # def p_tipo(t):
