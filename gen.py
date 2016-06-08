@@ -242,10 +242,10 @@ class Gen:
 #                    | ID RECEBE chamaFuncao NOVALINHA '''
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
     def genAtribuicao(self, nó):
-        if nó.filho[0].nome == 'conjExpr' or nó.filho[0].nome == 'conjExprComp':
-            resultado = self.genConjExpr(nó.filho[0])
-        else:
+        if nó.filho[0].nome == 'chamaFuncao':
             resultado = self.genChamaFuncao(nó.filho[0])
+        else:
+            resultado = self.genConjExpr(nó.filho[0])
 
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
