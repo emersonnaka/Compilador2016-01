@@ -243,14 +243,15 @@ class Gen:
     def genAtribuicao(self, nó):
         if nó.filho[0].nome == 'conjExpr':
             resultado = self.genConjExpr(nó.filho[0])
+        else:
+            resultado = self.genChamaFuncao(nó.filho[0])
 
-            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
-                    resultado = self.construtor.fptosi(resultado, ir.IntType(32))
-                self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
-            else:
-                self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
-        # else:
+        if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
+                resultado = self.construtor.fptosi(resultado, ir.IntType(32))
+            self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+        else:
+            self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
             
 
 # def p_leitura(t):
@@ -271,12 +272,7 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
-        if isinstance(expressão, str):
-            if self.escopo + '.' + expressão in self.símbolos.keys():
-                valor = self.construtor.load(self.símbolos[self.escopo + '.' + expressão][2])
-                return self.construtor.ret(valor)
-        else:
-            return self.construtor.ret(expressão)
+        return self.construtor.ret(expressão)
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
@@ -287,13 +283,22 @@ class Gen:
 #         t[0] = AST('conjExpr', [t[1]])
     def genConjExpr(self, nó):
         if len(nó.filho) == 3:
+            print("conjExprComp")
             esquerda = self.genExprArit(nó.filho[0])
             operador = self.genCompara(nó.filho[1])
             direita = self.genExprArit(nó.filho[2])
 
-            if operador == '=':
-                return self.construtor.fcmp_unordered('==', esquerda, direita, 'fcmp')
-            return self.construtor.fcmp_unordered(operador, esquerda, direita, 'fcmp')
+            print(operador)
+            if operador == '<':
+                return self.construtor.fcmp_unordered('<', esquerda, direita, 'fcmpMenor')
+            elif operador == '>':
+                return self.construtor.fcmp_unordered('>', esquerda, direita, 'fcmpMaior')
+            elif operador == '<=':
+                return self.construtor.fcmp_unordered('<=', esquerda, direita, 'fcmpMenorIgual')
+            elif operador == '>=':
+                return self.construtor.fcmp_unordered('>=', esquerda, direita, 'fcmpMaiorIgual')
+            else:
+                return self.construtor.fcmp_unordered('==', esquerda, direita, 'fcmpIgual')
 
         else:
             return self.genExprArit(nó.filho[0])
