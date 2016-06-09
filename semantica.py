@@ -236,6 +236,9 @@ class Semantica():
             print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
         if nó.filho[0].nome == 'chamaFuncao':
+            if not(nó.filho[0].folha[0] in self.símbolos.keys()):
+                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' não foi declarado")
+                exit(1)
             if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
                 print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
                 exit(1)
