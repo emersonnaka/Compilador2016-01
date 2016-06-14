@@ -91,11 +91,15 @@ class Gen:
         self.escopo = nó.folha[0]
         tipo = self.genTipo(nó.filho[0])
         parametros = self.genConjParametros(nó.filho[1])
-        função = ir.FunctionType(tipo, parametros)
+        função = ir.FunctionType(tipo, [parametros[i][0] for i in range(0, len(parametros))])
         nomeFunção = ir.Function(self.modulo, função, name = nó.folha[0])
         bloco = nomeFunção.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
-        self.genConjParametros(nó.filho[1])
+
+        # for i, param in enumerate(parametros):
+        #     nomeFunção.args[i].name = param
+        #     self.symbols[nomeFunção.name][param] = nomeFunção.args[i]
+
         self.genConjInstrucao(nó.filho[2])
 
 # def p_tipo(t):
@@ -128,35 +132,32 @@ class Gen:
 #     else:
 #         t[0] = AST('conjParametrosEmpty', [])
     def genConjParametros(self, nó):
-        parametros = []
+        tipos = []
         if len(nó.filho) > 0:
             tipo = self.genTipo(nó.filho[0])
-            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                self.símbolos[self.escopo + '.' + nó.folha[0]][2] = self.construtor.alloca(tipo, name = nó.folha[0])
-            parametros.append(tipo)
+            tipos.append((tipo, nó.folha[0]))
             if len(nó.filho) > 1:
-                parametros = parametros + self.genConjParametros(nó.filho[1])
-        return parametros
+                tipos = tipos + self.genConjParametros(nó.filho[1])
+        return tipos
 
 # def p_declaraVar(t):
 #     ' declaraVar : tipo DOISPONTOS ID NOVALINHA '
 #     t[0] = AST('declaraVar', [t[1]], [t[3]])
     def genDeclaraVar(self, nó):
         tipo = self.genTipo(nó.filho[0])
-        idVariável = nó.folha[0]
         if self.escopo == 'global':
-            self.símbolos['global.' + idVariável][2] = ir.GlobalVariable(self.modulo, tipo, idVariável)
+            self.símbolos['global.' + nó.folha[0]][2] = ir.GlobalVariable(self.modulo, tipo, nó.folha[0])
         else:
-            self.símbolos[self.escopo + '.' + idVariável][2] = self.construtor.alloca(tipo, name = idVariável)
+            self.símbolos[self.escopo + '.' + nó.folha[0]][2] = self.construtor.alloca(tipo, name = nó.folha[0])
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
 #     t[0] = AST('chamaFuncao', [t[3]], [t[1]])
     def genChamaFuncao(self, nó):
         nomeFunção = nó.folha[0]
-        tipos = self.genParametros(nó.filho[0])
+        valores = self.genParametros(nó.filho[0])
         função = self.modulo.get_global(nomeFunção)
-        chamaFunção = self.construtor.call(função, tipos, 'call')
+        chamaFunção = self.construtor.call(função, valores, 'call')
         return chamaFunção
 
 # def p_parametros(t):
@@ -171,13 +172,13 @@ class Gen:
 #         else:
 #             t[0] = AST('parametrosEmpty', [])
     def genParametros(self, nó):
-        tipos = []
+        valores = []
         if len(nó.filho) > 1:
-            tipos.append(self.genExprArit(nó.filho[1]))
-            tipos = tipos + self.genParametros(nó.filho[0])
+            valores.append(self.genExprArit(nó.filho[1]))
+            valores = valores + self.genParametros(nó.filho[0])
         elif len(nó.filho) == 1:
-            tipos.append(self.genExprArit(nó.filho[0]))
-        return tipos
+            valores.append(self.genExprArit(nó.filho[0]))
+        return valores
 
 # def p_conjInstrucao(t):
 #     ''' conjInstrucao : conjInstrucao instrucao
@@ -252,6 +253,8 @@ class Gen:
                 resultado = self.construtor.fptosi(resultado, ir.IntType(32))
             self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
         else:
+            if self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
+                resultado = self.construtor.fptosi(resultado, ir.IntType(32))
             self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
             
 
@@ -273,7 +276,9 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
-        return self.construtor.ret(expressão)
+        if self.símbolos[self.escopo][1] != 'vazio':
+            return self.construtor.ret(expressão)
+        return self.construtor.ret_void()
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
@@ -380,13 +385,10 @@ class Gen:
         elif nó.nome == 'num':
             return ir.Constant(ir.FloatType(), float(nó.filho[0].folha[0]))
         else:
-            valor = self.genCarregaId(nó.folha[0])
+            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+                valor = self.construtor.load(self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            elif 'global.' + nó.folha[0] in self.símbolos.keys():
+                valor = self.construtor.load(self.símbolos['global.' + nó.folha[0]][2])
             if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro' or self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
                 return self.construtor.sitofp(valor, ir.FloatType())
             return valor
-
-    def genCarregaId(self, idVariável):
-        if self.escopo + '.' + idVariável in self.símbolos.keys():
-            return self.construtor.load(self.símbolos[self.escopo + '.' + idVariável][2])
-        elif 'global.' + idVariável in self.símbolos.keys():
-            return self.construtor.load(self.símbolos['global.' + idVariável][2])
