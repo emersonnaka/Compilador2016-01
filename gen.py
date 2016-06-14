@@ -259,7 +259,17 @@ class Gen:
 # def p_repeticao(t):
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
-# def genRepeticao(self, nó):
+    def genRepeticao(self, nó):
+        repita = self.func.append_basic_block('repita')
+        fimRepita = self.func.append_basic_block('fimRepita')
+        self.construtor.branch(repita)
+        self.construtor.position_at_end(repita)
+        self.genConjInstrucao(nó.filho[0])
+
+        condição = self.genConjExpr(nó.filho[1])
+        self.construtor.cbranch(condição, repita, fimRepita)
+        self.construtor.position_at_end(fimRepita)
+
 
 
 # def p_atribuicao(t):
