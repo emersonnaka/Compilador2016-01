@@ -77,8 +77,8 @@ class Gen:
         self.escopo = nó.folha[1]
         tipo = ir.VoidType()
         função = ir.FunctionType(tipo, ())
-        principal = ir.Function(self.modulo, função, name = nó.folha[1])
-        bloco = principal.append_basic_block('entry')
+        self.func = ir.Function(self.modulo, função, name = nó.folha[1])
+        bloco = self.func.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
         self.genConjInstrucao(nó.filho[0])
 
@@ -92,8 +92,8 @@ class Gen:
         tipo = self.genTipo(nó.filho[0])
         parametros = self.genConjParametros(nó.filho[1])
         função = ir.FunctionType(tipo, [parametros[i][0] for i in range(0, len(parametros))])
-        nomeFunção = ir.Function(self.modulo, função, name = nó.folha[0])
-        bloco = nomeFunção.append_basic_block('entry')
+        self.func = ir.Function(self.modulo, função, name = nó.folha[0])
+        bloco = self.func.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
 
         # for i, param in enumerate(parametros):
@@ -229,7 +229,31 @@ class Gen:
 #         t[0] = AST('condicionalSe', [t[2], t[5]])
 #     else:
 #         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
-# def genCondicional(self, nó):
+    def genCondicional(self, nó):
+        condição = self.genConjExpr(nó.filho[0])
+
+        blocoEntão = self.func.append_basic_block('então')
+        if len(nó.filho) == 3:
+            blocoSenão = self.func.append_basic_block('senão')
+        blocoFim = self.func.append_basic_block('fim')
+
+        if len(nó.filho) == 3:
+            self.construtor.cbranch(condição, blocoEntão, blocoSenão)
+        else:
+            self.construtor.cbranch(condição, blocoEntão, blocoFim)
+
+        ''' After the conditional branch is inserted, we move the
+        builder to start inserting into the “then” block '''
+        self.construtor.position_at_end(blocoEntão)
+        self.genConjInstrucao(nó.filho[1])
+        '''To finish off the block, we create an
+        unconditional branch to the merge block'''
+        self.construtor.branch(blocoFim)
+        if len(nó.filho) == 3:
+            self.construtor.position_at_end(blocoSenão)
+            self.genConjInstrucao(nó.filho[2])
+            self.construtor.branch(blocoFim)
+        self.construtor.position_at_end(blocoFim)
 
 
 # def p_repeticao(t):
