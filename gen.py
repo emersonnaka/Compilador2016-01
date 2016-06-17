@@ -158,6 +158,8 @@ class Gen:
         valores = self.genParametros(nó.filho[0])
         função = self.modulo.get_global(nomeFunção)
         chamaFunção = self.construtor.call(função, valores, 'call')
+        if self.símbolos[nó.folha[0]][1] == 'inteiro':
+            chamaFunção = self.construtor.sitofp(ir.Constant(ir.IntType(32), chamaFunção), ir.FloatType())
         return chamaFunção
 
 # def p_parametros(t):
@@ -190,9 +192,9 @@ class Gen:
     def genConjInstrucao(self, nó):
         if nó.nome == 'conjInstrucaoComp':
             self.genConjInstrucao(nó.filho[0])
-            self.genInstrucao(nó.filho[1])
+            return self.genInstrucao(nó.filho[1])
         else:
-            self.genInstrucao(nó.filho[0])
+            return self.genInstrucao(nó.filho[0])
 
 # def p_instrucao(t):
 #     '''instrucao : condicional
@@ -206,21 +208,21 @@ class Gen:
 #     t[0] = AST('instrucao', [t[1]])
     def genInstrucao(self, nó):
         if nó.filho[0].nome == 'condicionalSe' or nó.filho[0].nome == 'condicionalSenao':
-            self.genCondicional(nó.filho[0])
+            return self.genCondicional(nó.filho[0])
         if nó.filho[0].nome == 'repeticao':
-            self.genRepeticao(nó.filho[0])
+            return self.genRepeticao(nó.filho[0])
         if nó.filho[0].nome == 'atribuicao':
-            self.genAtribuicao(nó.filho[0])
+            return self.genAtribuicao(nó.filho[0])
         if nó.filho[0].nome == 'leitura':
-            self.genLeitura(nó.filho[0])
+            return self.genLeitura(nó.filho[0])
         if nó.filho[0].nome == 'escreva':
-            self.genEscreva(nó.filho[0])
+            return self.genEscreva(nó.filho[0])
         if nó.filho[0].nome == 'chamaFuncao':
-            self.genChamaFuncao(nó.filho[0])
+            return self.genChamaFuncao(nó.filho[0])
         if nó.filho[0].nome == 'declaraVar':
-            self.genDeclaraVar(nó.filho[0])
+            return self.genDeclaraVar(nó.filho[0])
         if nó.filho[0].nome == 'retorna':
-            self.genRetorna(nó.filho[0])
+            return self.genRetorna(nó.filho[0])
 
 # def p_condicional(t):
 #     ''' condicional : SE conjExpr ENTAO NOVALINHA conjInstrucao FIM NOVALINHA
@@ -232,28 +234,38 @@ class Gen:
     def genCondicional(self, nó):
         condição = self.genConjExpr(nó.filho[0])
 
+        # Criação dos blocos basicos
         blocoEntão = self.func.append_basic_block('então')
         if len(nó.filho) == 3:
             blocoSenão = self.func.append_basic_block('senão')
-        blocoFim = self.func.append_basic_block('fim')
+        blocoMerge = self.func.append_basic_block('fim')
 
-        if len(nó.filho) == 3:
-            self.construtor.cbranch(condição, blocoEntão, blocoSenão)
+        if len(nó.filho) == 2:
+            self.construtor.cbranch(condição, blocoEntão, blocoMerge)
         else:
-            self.construtor.cbranch(condição, blocoEntão, blocoFim)
+            self.construtor.cbranch(condição, blocoEntão, blocoSenão)
 
         ''' After the conditional branch is inserted, we move the
         builder to start inserting into the “then” block '''
         self.construtor.position_at_end(blocoEntão)
-        self.genConjInstrucao(nó.filho[1])
+        valorEntão = self.genConjInstrucao(nó.filho[1])
         '''To finish off the block, we create an
         unconditional branch to the merge block'''
-        self.construtor.branch(blocoFim)
+        self.construtor.branch(blocoMerge)
+        blocoEntão = self.construtor.basic_block
+
         if len(nó.filho) == 3:
             self.construtor.position_at_end(blocoSenão)
-            self.genConjInstrucao(nó.filho[2])
-            self.construtor.branch(blocoFim)
-        self.construtor.position_at_end(blocoFim)
+            valorSenão = self.genConjInstrucao(nó.filho[2])
+            self.construtor.branch(blocoMerge)
+            blocoSenão = self.construtor.basic_block
+
+        self.construtor.position_at_end(blocoMerge)
+        phi = self.construtor.phi(ir.FloatType(), 'seTmp')
+        phi.add_incoming(valorEntão, blocoEntão)
+        if len(nó.filho) == 3:
+            phi.add_incoming(valorSenão, blocoSenão)
+        return phi
 
 
 # def p_repeticao(t):
@@ -273,23 +285,19 @@ class Gen:
 
 
 # def p_atribuicao(t):
-#     ''' atribuicao : ID RECEBE conjExpr NOVALINHA
-#                    | ID RECEBE chamaFuncao NOVALINHA '''
+#     ' atribuicao : ID RECEBE conjExpr NOVALINHA '
 #     t[0] = AST('atribuicao', [t[3]], [t[1]])
     def genAtribuicao(self, nó):
-        if nó.filho[0].nome == 'chamaFuncao':
-            resultado = self.genChamaFuncao(nó.filho[0])
-        else:
-            resultado = self.genConjExpr(nó.filho[0])
+        resultado = self.genConjExpr(nó.filho[0])
 
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
                 resultado = self.construtor.fptosi(resultado, ir.IntType(32))
-            self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+            return self.construtor.store(resultado, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
         else:
             if self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
                 resultado = self.construtor.fptosi(resultado, ir.IntType(32))
-            self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
+            return self.construtor.store(resultado, self.símbolos['global.' + nó.folha[0]][2])
             
 
 # def p_leitura(t):
@@ -299,8 +307,7 @@ class Gen:
 
 
 # def p_escreva(t):
-#     ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
-#                 | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
+#     ' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA '
 #     t[0] = AST('escreva', [t[3]])
 # def genEscreva(self, nó):
 
@@ -418,7 +425,7 @@ class Gen:
             return self.genExprArit(nó.filho[0])
         elif nó.nome == 'num':
             return ir.Constant(ir.FloatType(), float(nó.filho[0].folha[0]))
-        else:
+        elif nó.nome == 'fatorID':
             if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
                 valor = self.construtor.load(self.símbolos[self.escopo + '.' + nó.folha[0]][2])
             elif 'global.' + nó.folha[0] in self.símbolos.keys():
@@ -426,3 +433,5 @@ class Gen:
             if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro' or self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
                 return self.construtor.sitofp(valor, ir.FloatType())
             return valor
+        else:
+            return self.genChamaFuncao(nó.filho[0])
