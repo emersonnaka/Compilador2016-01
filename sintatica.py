@@ -116,8 +116,7 @@ def p_repeticao(t):
     t[0] = AST('repeticao', [t[3], t[5]])
 
 def p_atribuicao(t):
-    ''' atribuicao : ID RECEBE conjExpr novaLinha
-                   | ID RECEBE chamaFuncao novaLinha '''
+    ' atribuicao : ID RECEBE conjExpr novaLinha '
     t[0] = AST('atribuicao', [t[3]], [t[1]])
 
 def p_leitura(t):
@@ -125,8 +124,7 @@ def p_leitura(t):
     t[0] = AST('leitura', [], [t[3]])
 
 def p_escreva(t):
-    ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES novaLinha
-                | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES novaLinha '''
+    ' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES novaLinha '
     t[0] = AST('escreva', [t[3]])
 
 def p_retorna(t):
@@ -183,13 +181,17 @@ def p_fator_2(t):
     ' fator : num '
     t[0] = AST('num', [t[1]])
 
-def p_novaLinha(t):
-    ''' novaLinha : NOVALINHA 
-                  | NOVALINHA novaLinha '''
-
 def p_fator_3(t):
     ' fator : ID '
     t[0] = AST('fatorID', [], [t[1]])
+
+def p_fator_4(t):
+    ' fator : chamaFuncao '
+    t[0] = AST('fatorChamaFuncao', [t[1]])
+
+def p_novaLinha(t):
+    ''' novaLinha : NOVALINHA 
+                  | NOVALINHA novaLinha '''
 
 def p_num_1(t):
     ' num : N_INTEIRO '

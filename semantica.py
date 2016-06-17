@@ -141,6 +141,7 @@ class Semantica():
         if self.símbolos[nó.folha[0]][2] != qtdeParam:
             print("WARNING chamada de função: espera parâmetros dos tipos " + str(self.símbolos[nó.folha[0]][2]) +
                 " e está sendo passado " + str(qtdeParam) + " na função '"  + nó.folha[0] + "'")
+        return self.símbolos[nó.folha[0]][1]
 
 
 # def p_parametros(t):
@@ -235,36 +236,17 @@ class Semantica():
         if (self.escopo + '.' + nó.folha[0] not in self.símbolos.keys()) and ('global.' + nó.folha[0] not in self.símbolos.keys()):
             print("Erro semântico: ID '" + nó.folha[0] + "' não declarado")
             exit(1)
-        if nó.filho[0].nome == 'chamaFuncao':
-            if not(nó.filho[0].folha[0] in self.símbolos.keys()):
-                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' não foi declarado")
-                exit(1)
-            if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
-                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
-                exit(1)
-            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
-                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
-                        self.símbolos[self.escopo + '.' + nó.folha[0]][1] + "' e está recebendo a função '" +
-                        nó.filho[0].folha[0] + "' do tipo '" + self.símbolos[nó.filho[0].folha[0]][1] + "'")
-            elif 'global.' + nó.folha[0] in self.símbolos.keys():
-                if self.símbolos['global.' + nó.folha[0]][1] != self.símbolos[nó.filho[0].folha[0]][1]:
-                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
-                        self.símbolos['global.' + nó.folha[0]][1] + "' e está recebendo a função '" +
-                        nó.filho[0].folha[0] + "' do tipo '" + self.símbolos[nó.filho[0].folha[0]][1] + "'")
-            self.chamaFuncao(nó.filho[0])
-        else:
-            tipo = self.conjExpr(nó.filho[0])
-            if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
-                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != tipo:
-                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
-                        self.símbolos[self.escopo + '.' + nó.folha[0]][1] +
-                        "' está atribuindo uma expressão do tipo '" + tipo + "'")
-            elif 'global.' + nó.folha[0] in self.símbolos.keys():
-                if self.símbolos['global.' + nó.folha[0]][1] != tipo:
-                    print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
-                        self.símbolos['global.' + nó.folha[0]][1] +
-                        "' está atribuindo uma expressão do tipo '" + tipo + "'")
+        tipo = self.conjExpr(nó.filho[0])
+        if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] != tipo:
+                print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                    self.símbolos[self.escopo + '.' + nó.folha[0]][1] +
+                    "' está atribuindo uma expressão do tipo '" + tipo + "'")
+        elif 'global.' + nó.folha[0] in self.símbolos.keys():
+            if self.símbolos['global.' + nó.folha[0]][1] != tipo:
+                print("WARNING atribuição: ID '" + nó.folha[0] + "' é do tipo '" +
+                    self.símbolos['global.' + nó.folha[0]][1] +
+                    "' está atribuindo uma expressão do tipo '" + tipo + "'")
         if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             if not(self.símbolos[self.escopo + '.' + nó.folha[0]][2]):
                 self.símbolos[self.escopo + '.' + nó.folha[0]][3] = True
@@ -281,14 +263,10 @@ class Semantica():
             exit(1)
 
 # def p_escreva(t):
-#     ''' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA
-#                 | ESCREVA ABREPARENTES chamaFuncao FECHAPARENTES NOVALINHA '''
+#     ' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA '
 #     t[0] = AST('escreva', [t[3]])
     def escreva(self, nó):
-        if nó.filho[0].nome == 'chamaFuncao':
-            self.chamaFuncao(nó.filho[0])
-        else:
-            self.conjExpr(nó.filho[0])
+        self.conjExpr(nó.filho[0])
 
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
@@ -391,6 +369,9 @@ class Semantica():
 # def p_fator_3(t):
 #     ' fator : ID '
 #     t[0] = AST('fatorID', [], [t[1]])
+# def p_fator_4(t):
+#     ' fator : chamaFuncao '
+#     t[0] = AST('fatorChamaFuncao', [t[1]])
     def fator(self, nó):
         if nó.nome == 'fatorExprArit':
             self.exprArit(nó.filho[0])
@@ -410,6 +391,14 @@ class Semantica():
                     print("Erro semântico: ID '" + nó.folha[0] + "' não foi inicializado")
                     exit(1)
                 return self.símbolos['global.' + nó.folha[0]][1]
+        else:
+            if not(nó.filho[0].folha[0] in self.símbolos.keys()):
+                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' não foi declarado")
+                exit(1)
+            if self.símbolos[nó.filho[0].folha[0]][1] == 'vazio':
+                print("Erro semântico: função '" + nó.filho[0].folha[0] + "' é do tipo 'vazio', então não possui retorno")
+                exit(1)
+            return self.chamaFuncao(nó.filho[0])
 
     def num(self, nó):
         if nó.nome == 'n_inteiro':
