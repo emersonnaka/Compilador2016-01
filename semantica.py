@@ -273,6 +273,10 @@ class Semantica():
 #     t[0] = AST('retorna', [t[3]])
     def retorna(self, nó):
         tipo = self.exprArit(nó.filho[0])
+        if self.símbolos[self.escopo][1] == 'vazio':
+            print("WARNING: função '" + self.escopo + "' é do tipo '" + self.símbolos[self.escopo][1] +
+                "', então não pode ter chamada de retorno ")
+            exit(1)
         if self.símbolos[self.escopo][1] != tipo:
             print("WARNING: função '" + self.escopo + "' é do tipo '" + self.símbolos[self.escopo][1] +
                 "' e está retornando uma expressão do tipo '" + tipo + "'")
