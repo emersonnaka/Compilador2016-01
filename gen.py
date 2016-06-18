@@ -81,6 +81,7 @@ class Gen:
         bloco = self.func.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
         self.genConjInstrucao(nó.filho[0])
+        return self.construtor.ret_void()
 
 # def p_funcao(t):
 #     ' funcao : tipo ID ABREPARENTES conjParametros FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA '
@@ -101,6 +102,9 @@ class Gen:
         #     self.symbols[nomeFunção.name][param] = nomeFunção.args[i]
 
         self.genConjInstrucao(nó.filho[2])
+        print(tipo)
+        if tipo == ir.VoidType():
+            return self.construtor.ret_void()
 
 # def p_tipo(t):
 #     ''' tipo : INTEIRO
@@ -317,9 +321,7 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
-        if self.símbolos[self.escopo][1] != 'vazio':
-            return self.construtor.ret(expressão)
-        return self.construtor.ret_void()
+        return self.construtor.ret(expressão)
 
 # def p_conjExpr(t):
 #     ''' conjExpr : exprArit compara exprArit
