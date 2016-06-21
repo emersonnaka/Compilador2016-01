@@ -97,12 +97,12 @@ class Gen:
         bloco = self.func.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
 
-        # for i, param in enumerate(parametros):
-        #     nomeFunção.args[i].name = param
-        #     self.symbols[nomeFunção.name][param] = nomeFunção.args[i]
+        for i, param in enumerate(parametros):
+            self.func.args[i].name = param[1]
+            self.símbolos[self.escopo + '.' + param[1]][2] = self.construtor.alloca(param[0], name = param[1])
+            self.construtor.store(self.func.args[i], self.símbolos[self.escopo + '.' + param[1]][2])
 
         self.genConjInstrucao(nó.filho[2])
-        print(tipo)
         if tipo == ir.VoidType():
             return self.construtor.ret_void()
 
@@ -161,6 +161,14 @@ class Gen:
         nomeFunção = nó.folha[0]
         valores = self.genParametros(nó.filho[0])
         função = self.modulo.get_global(nomeFunção)
+        tipos = self.símbolos[nó.folha[0]][2]
+
+        i = 0
+        while i < len(tipos):
+            if tipos[i] == 'inteiro':
+                valores[i] = self.construtor.fptosi(valores[i], ir.IntType(32))
+            i = i + 1
+
         chamaFunção = self.construtor.call(função, valores, 'call')
         if self.símbolos[nó.folha[0]][1] == 'inteiro':
             chamaFunção = self.construtor.sitofp(ir.Constant(ir.IntType(32), chamaFunção), ir.FloatType())
@@ -213,19 +221,19 @@ class Gen:
     def genInstrucao(self, nó):
         if nó.filho[0].nome == 'condicionalSe' or nó.filho[0].nome == 'condicionalSenao':
             return self.genCondicional(nó.filho[0])
-        if nó.filho[0].nome == 'repeticao':
+        elif nó.filho[0].nome == 'repeticao':
             return self.genRepeticao(nó.filho[0])
-        if nó.filho[0].nome == 'atribuicao':
+        elif nó.filho[0].nome == 'atribuicao':
             return self.genAtribuicao(nó.filho[0])
-        if nó.filho[0].nome == 'leitura':
+        elif nó.filho[0].nome == 'leitura':
             return self.genLeitura(nó.filho[0])
-        if nó.filho[0].nome == 'escreva':
+        elif nó.filho[0].nome == 'escreva':
             return self.genEscreva(nó.filho[0])
-        if nó.filho[0].nome == 'chamaFuncao':
+        elif nó.filho[0].nome == 'chamaFuncao':
             return self.genChamaFuncao(nó.filho[0])
-        if nó.filho[0].nome == 'declaraVar':
+        elif nó.filho[0].nome == 'declaraVar':
             return self.genDeclaraVar(nó.filho[0])
-        if nó.filho[0].nome == 'retorna':
+        elif nó.filho[0].nome == 'retorna':
             return self.genRetorna(nó.filho[0])
 
 # def p_condicional(t):
@@ -238,12 +246,16 @@ class Gen:
     def genCondicional(self, nó):
         condição = self.genConjExpr(nó.filho[0])
 
-        # Criação dos blocos basicos
+        ''' Create blocks for the then and else cases. Insert the 'then' block at the
+        end of the function. '''
         blocoEntão = self.func.append_basic_block('então')
         if len(nó.filho) == 3:
             blocoSenão = self.func.append_basic_block('senão')
         blocoMerge = self.func.append_basic_block('fim')
 
+
+        ''' Once the blocks are created, we can emit the conditional
+        branch that chooses between them '''
         if len(nó.filho) == 2:
             self.construtor.cbranch(condição, blocoEntão, blocoMerge)
         else:
@@ -256,6 +268,12 @@ class Gen:
         '''To finish off the block, we create an
         unconditional branch to the merge block'''
         self.construtor.branch(blocoMerge)
+        ''' One interesting (and very important)
+        aspect of the LLVM IR is that it requires all basic blocks to be
+        “terminated” with a control flow instruction such as return or
+        branch. This means that all control flow, including fall throughs
+        must be made explicit in the LLVM IR. If you violate this rule,
+        the verifier will emit an error.'''
         blocoEntão = self.construtor.basic_block
 
         if len(nó.filho) == 3:
@@ -276,16 +294,20 @@ class Gen:
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
     def genRepeticao(self, nó):
-        repita = self.func.append_basic_block('repita')
-        fimRepita = self.func.append_basic_block('fimRepita')
-        self.construtor.branch(repita)
-        self.construtor.position_at_end(repita)
-        self.genConjInstrucao(nó.filho[0])
+        blocoRepita = self.func.append_basic_block('repita')
+        blocoFimRepita = self.func.append_basic_block('fimRepita')
+        self.construtor.branch(blocoRepita)
+        self.construtor.position_at_end(blocoRepita)
+        valorRepita = self.genConjInstrucao(nó.filho[0])
+        blocoRepita = self.construtor.basic_block
 
         condição = self.genConjExpr(nó.filho[1])
-        self.construtor.cbranch(condição, repita, fimRepita)
-        self.construtor.position_at_end(fimRepita)
-
+        self.construtor.cbranch(condição, blocoRepita, blocoFimRepita)
+        self.construtor.position_at_end(blocoFimRepita)
+        
+        phi = self.construtor.phi(ir.FloatType(), 'repitaTmp')
+        phi.add_incoming(valorRepita, blocoRepita)
+        return phi
 
 
 # def p_atribuicao(t):
@@ -430,10 +452,12 @@ class Gen:
         elif nó.nome == 'fatorID':
             if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
                 valor = self.construtor.load(self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+                if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
+                    valor = self.construtor.sitofp(valor, ir.FloatType())
             elif 'global.' + nó.folha[0] in self.símbolos.keys():
                 valor = self.construtor.load(self.símbolos['global.' + nó.folha[0]][2])
-            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro' or self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
-                return self.construtor.sitofp(valor, ir.FloatType())
+                if self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
+                    valor = self.construtor.sitofp(valor, ir.FloatType())
             return valor
         else:
             return self.genChamaFuncao(nó.filho[0])
