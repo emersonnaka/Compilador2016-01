@@ -175,7 +175,7 @@ def p_multi(t):
 
 def p_fator_1(t):
     ' fator : ABREPARENTES exprArit FECHAPARENTES '
-    t[0] = AST('fatorExprArit', [t[1]])
+    t[0] = AST('fatorExprArit', [t[2]])
 
 def p_fator_2(t):
     ' fator : num '
