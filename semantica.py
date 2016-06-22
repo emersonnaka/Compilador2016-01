@@ -378,7 +378,7 @@ class Semantica():
 #     t[0] = AST('fatorChamaFuncao', [t[1]])
     def fator(self, nó):
         if nó.nome == 'fatorExprArit':
-            self.exprArit(nó.filho[0])
+            return self.exprArit(nó.filho[0])
         if nó.nome == 'num':
             return self.num(nó.filho[0])
         elif nó.nome == 'fatorID':
