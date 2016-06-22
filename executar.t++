@@ -1,19 +1,31 @@
-inteiro: a
-flutuante: b
+flutuante somar (flutuante: a, flutuante: b)
+	retorna(a + b)
+fim
 
-inteiro ha()
-	inteiro: p
-	p := 3
-	retorna(3)
+flutuante subtrair (flutuante: a, flutuante: b)
+	retorna(a - b)
+fim
+
+flutuante multiplicar (flutuante: a, flutuante: b)
+	retorna(a * b)
+fim
+
+flutuante dividir (flutuante: a, flutuante: b)
+	retorna(a / b)
+fim
+
+flutuante teste()
+	se 1 = 1 então
+		retorna(dividir(2, 3))
+	senão
+		retorna(multiplicar(2, 2))
+	fim
 fim
 
 vazio principal()
-	inteiro: n
-	inteiro: x
-	inteiro: r
-	flutuante: f
-	n := 9
-	f := 3.14
-	x := ha()
-	a := 1243
+	flutuante: r
+	r := somar(3, 5)
+	r := subtrair(3, 5)
+	r := multiplicar(3, 5)
+	r := dividir(3, 5)
 fim
