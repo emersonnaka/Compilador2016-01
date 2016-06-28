@@ -4,6 +4,7 @@ from llvmlite import ir, binding
 from semantica import Semantica
 from sintatica import *
 from sys import exit
+import os
 
 class Gen:
 
@@ -15,9 +16,16 @@ class Gen:
         self.construtor = None
         self.func = None
         self.símbolos = semantica.símbolos
+        self.phi = False
         # self.debug = debug
         self.escopo = 'global'
         self.modulo = ir.Module('programa')
+
+        self.escrevaFlutuante = ir.Function(self.modulo, ir.FunctionType(ir.FloatType(), [ir.FloatType()]), 'escrevaFlutuante')
+        self.escrevaInteiro = ir.Function(self.modulo, ir.FunctionType(ir.IntType(32), [ir.IntType(32)]), 'escrevaInteiro')
+        self.leiaFlutuante = ir.Function(self.modulo, ir.FunctionType(ir.FloatType(), []), 'leiaFlutuante')
+        self.leiaInteiro = ir.Function(self.modulo, ir.FunctionType(ir.IntType(32), []), 'leiaInteiro')
+
         self.genTopo(self.semantica)
         print(self.modulo)
 
@@ -77,7 +85,7 @@ class Gen:
         self.escopo = nó.folha[1]
         tipo = ir.VoidType()
         função = ir.FunctionType(tipo, ())
-        self.func = ir.Function(self.modulo, função, name = nó.folha[1])
+        self.func = ir.Function(self.modulo, função, name = 'main')
         bloco = self.func.append_basic_block('entry')
         self.construtor = ir.IRBuilder(bloco)
         self.genConjInstrucao(nó.filho[0])
@@ -244,13 +252,14 @@ class Gen:
 #     else:
 #         t[0] = AST('condicionalSenao', [t[2], t[5], t[8]])
     def genCondicional(self, nó):
+        self.phi = True
         condição = self.genConjExpr(nó.filho[0])
 
         ''' Create blocks for the then and else cases. Insert the 'then' block at the
         end of the function. '''
-        blocoEntão = self.func.append_basic_block('então')
+        blocoEntão = self.func.append_basic_block('entao')
         if len(nó.filho) == 3:
-            blocoSenão = self.func.append_basic_block('senão')
+            blocoSenão = self.func.append_basic_block('senao')
         blocoMerge = self.func.append_basic_block('fim')
 
 
@@ -265,6 +274,7 @@ class Gen:
         builder to start inserting into the “then” block '''
         self.construtor.position_at_end(blocoEntão)
         valorEntão = self.genConjInstrucao(nó.filho[1])
+        self.phi = True
         '''To finish off the block, we create an
         unconditional branch to the merge block'''
         self.construtor.branch(blocoMerge)
@@ -279,6 +289,7 @@ class Gen:
         if len(nó.filho) == 3:
             self.construtor.position_at_end(blocoSenão)
             valorSenão = self.genConjInstrucao(nó.filho[2])
+            self.phi = True
             self.construtor.branch(blocoMerge)
             blocoSenão = self.construtor.basic_block
 
@@ -287,6 +298,7 @@ class Gen:
         phi.add_incoming(valorEntão, blocoEntão)
         if len(nó.filho) == 3:
             phi.add_incoming(valorSenão, blocoSenão)
+        self.phi = False
         return phi
 
 
@@ -294,6 +306,7 @@ class Gen:
 #     ' repeticao : REPITA NOVALINHA conjInstrucao ATE conjExpr NOVALINHA'
 #     t[0] = AST('repeticao', [t[3], t[5]])
     def genRepeticao(self, nó):
+        self.phi = True
         blocoRepita = self.func.append_basic_block('repita')
         blocoFimRepita = self.func.append_basic_block('fimRepita')
         self.construtor.branch(blocoRepita)
@@ -307,6 +320,7 @@ class Gen:
         
         phi = self.construtor.phi(ir.FloatType(), 'repitaTmp')
         phi.add_incoming(valorRepita, blocoRepita)
+        self.phi = False
         return phi
 
 
@@ -329,13 +343,25 @@ class Gen:
 # def p_leitura(t):
 #     ' leitura : LEIA ABREPARENTES ID FECHAPARENTES NOVALINHA '
 #     t[0] = AST('leitura', [], [t[3]])
-# def genLeitura(self, nó):
-
+    def genLeitura(self, nó):
+        if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
+            if self.símbolos[self.escopo + '.' + nó.folha[0]][1] == 'inteiro':
+                valor = self.construtor.call(self.leiaInteiro, [])
+            else:
+                valor = self.construtor.call(self.leiaFlutuante, [])
+        else:
+            if self.símbolos['global.' + nó.folha[0]][1] == 'inteiro':
+                valor = self.construtor.call(self.leiaInteiro, [])
+            else:
+                valor = self.construtor.call(self.leiaFlutuante, [])
+        self.construtor.store(valor, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
 
 # def p_escreva(t):
 #     ' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA '
 #     t[0] = AST('escreva', [t[3]])
-# def genEscreva(self, nó):
+    def genEscreva(self, nó):
+        expr = self.genConjExpr(nó.filho[0])
+        self.construtor.call(self.escrevaFlutuante, [expr])
 
 
 # def p_retorna(t):
@@ -343,6 +369,8 @@ class Gen:
 #     t[0] = AST('retorna', [t[3]])
     def genRetorna(self, nó):
         expressão = self.genExprArit(nó.filho[0])
+        if self.phi:
+            return expressão
         return self.construtor.ret(expressão)
 
 # def p_conjExpr(t):
@@ -422,8 +450,8 @@ class Gen:
             direita = self.genFator(nó.filho[2])
 
             if operador == '*':
-                return self.construtor.mul(esquerda, direita, name='mul')
-            return self.construtor.sdiv(esquerda, direita, name='div')
+                return self.construtor.fmul(esquerda, direita, name='mul')
+            return self.construtor.fdiv(esquerda, direita, name='div')
 
         else:
             return self.genFator(nó.filho[0])
