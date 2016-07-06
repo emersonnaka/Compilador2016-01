@@ -63,7 +63,10 @@ class Semantica():
 
     def declaraVar(self, nó):
         tipo = self.getTipo(nó.filho[0])
-        if self.escopo + '.' + nó.folha[0] is self.símbolos.keys():
+        if tipo == 'vazio':
+            print("Erro semântico: ID '" + nó.folha[0] + "' não pode ser do tipo 'vazio'")
+            exit(1)
+        if self.escopo + '.' + nó.folha[0] in self.símbolos.keys():
             print("Erro semântico: ID '" + nó.folha[0] + "' já foi declarado")
             exit(1)
         if nó.folha[0] is self.símbolos.keys():
@@ -212,6 +215,9 @@ class Semantica():
             esquerda = self.termo(nó.filho[0])
             operador = self.multi(nó.filho[1])
             direita = self.fator(nó.filho[2])
+
+            if operador == '/':
+                return 'flutuante'
 
             if(esquerda == direita):
                 return esquerda

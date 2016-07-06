@@ -17,6 +17,8 @@ class Gen:
         self.func = None
         self.símbolos = semantica.símbolos
         self.phi = False
+        self.esquerda = None
+        self.direita = None
         # self.debug = debug
         self.escopo = 'global'
         self.modulo = ir.Module('programa')
@@ -94,8 +96,6 @@ class Gen:
 # def p_funcao(t):
 #     ' funcao : tipo ID ABREPARENTES conjParametros FECHAPARENTES NOVALINHA conjInstrucao FIM NOVALINHA '
 #     t[0] = AST('funcao', [t[1], t[4], t[7]], [t[2]])
-# Inicialmente, a chave do dicionário seria o tipo da função '.' id, entretanto, se o usuário declarasse
-# um ID com o tipo diferente, não daria erro. Sendo que o correto é acusar o erro
     def genFuncao(self, nó):
         self.escopo = nó.folha[0]
         tipo = self.genTipo(nó.filho[0])
@@ -159,8 +159,10 @@ class Gen:
         tipo = self.genTipo(nó.filho[0])
         if self.escopo == 'global':
             self.símbolos['global.' + nó.folha[0]][2] = ir.GlobalVariable(self.modulo, tipo, nó.folha[0])
+            return self.símbolos['global.' + nó.folha[0]][2]
         else:
             self.símbolos[self.escopo + '.' + nó.folha[0]][2] = self.construtor.alloca(tipo, name = nó.folha[0])
+            return self.símbolos[self.escopo + '.' + nó.folha[0]][2]
 
 # def p_chamaFuncao(t):
 #     ' chamaFuncao : ID ABREPARENTES parametros FECHAPARENTES '
@@ -177,7 +179,8 @@ class Gen:
                 valores[i] = self.construtor.fptosi(valores[i], ir.IntType(32))
             i = i + 1
 
-        chamaFunção = self.construtor.call(função, valores, 'call')
+        # self.construtor.call(self.escrevaFlutuante, [expr], name = 'call')
+        chamaFunção = self.construtor.call(função, valores)
         if self.símbolos[nó.folha[0]][1] == 'inteiro':
             chamaFunção = self.construtor.sitofp(ir.Constant(ir.IntType(32), chamaFunção), ir.FloatType())
         return chamaFunção
@@ -255,45 +258,30 @@ class Gen:
         self.phi = True
         condição = self.genConjExpr(nó.filho[0])
 
-        ''' Create blocks for the then and else cases. Insert the 'then' block at the
-        end of the function. '''
         blocoEntão = self.func.append_basic_block('entao')
         if len(nó.filho) == 3:
             blocoSenão = self.func.append_basic_block('senao')
-        blocoMerge = self.func.append_basic_block('fim')
+        blocoFim = self.func.append_basic_block('fim')
 
-
-        ''' Once the blocks are created, we can emit the conditional
-        branch that chooses between them '''
         if len(nó.filho) == 2:
-            self.construtor.cbranch(condição, blocoEntão, blocoMerge)
+            self.construtor.cbranch(condição, blocoEntão, blocoFim)
         else:
             self.construtor.cbranch(condição, blocoEntão, blocoSenão)
 
-        ''' After the conditional branch is inserted, we move the
-        builder to start inserting into the “then” block '''
         self.construtor.position_at_end(blocoEntão)
         valorEntão = self.genConjInstrucao(nó.filho[1])
         self.phi = True
-        '''To finish off the block, we create an
-        unconditional branch to the merge block'''
-        self.construtor.branch(blocoMerge)
-        ''' One interesting (and very important)
-        aspect of the LLVM IR is that it requires all basic blocks to be
-        “terminated” with a control flow instruction such as return or
-        branch. This means that all control flow, including fall throughs
-        must be made explicit in the LLVM IR. If you violate this rule,
-        the verifier will emit an error.'''
+        self.construtor.branch(blocoFim)
         blocoEntão = self.construtor.basic_block
 
         if len(nó.filho) == 3:
             self.construtor.position_at_end(blocoSenão)
             valorSenão = self.genConjInstrucao(nó.filho[2])
             self.phi = True
-            self.construtor.branch(blocoMerge)
+            self.construtor.branch(blocoFim)
             blocoSenão = self.construtor.basic_block
 
-        self.construtor.position_at_end(blocoMerge)
+        self.construtor.position_at_end(blocoFim)
         phi = self.construtor.phi(ir.FloatType(), 'seTmp')
         phi.add_incoming(valorEntão, blocoEntão)
         if len(nó.filho) == 3:
@@ -354,15 +342,16 @@ class Gen:
                 valor = self.construtor.call(self.leiaInteiro, [])
             else:
                 valor = self.construtor.call(self.leiaFlutuante, [])
-        self.construtor.store(valor, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
+        return self.construtor.store(valor, self.símbolos[self.escopo + '.' + nó.folha[0]][2])
 
 # def p_escreva(t):
 #     ' escreva : ESCREVA ABREPARENTES conjExpr FECHAPARENTES NOVALINHA '
 #     t[0] = AST('escreva', [t[3]])
     def genEscreva(self, nó):
         expr = self.genConjExpr(nó.filho[0])
-        self.construtor.call(self.escrevaFlutuante, [expr])
-
+        # expr = self.construtor.fptosi(expr, ir.IntType(32))
+        # self.construtor.call(self.escrevaInteiro, [expr])
+        return self.construtor.call(self.escrevaFlutuante, [expr])
 
 # def p_retorna(t):
 #     ' retorna : RETORNA ABREPARENTES exprArit FECHAPARENTES NOVALINHA '
@@ -371,6 +360,8 @@ class Gen:
         expressão = self.genExprArit(nó.filho[0])
         if self.phi:
             return expressão
+        if self.símbolos[self.escopo][1] == 'inteiro':
+            expressão = self.construtor.fptosi(expressão, ir.IntType(32))
         return self.construtor.ret(expressão)
 
 # def p_conjExpr(t):
@@ -387,15 +378,15 @@ class Gen:
             direita = self.genExprArit(nó.filho[2])
 
             if operador == '<':
-                return self.construtor.fcmp_unordered('<', esquerda, direita, 'fcmpMenor')
+                return self.construtor.fcmp_unordered('<', esquerda, direita, name = 'fcmpMenor')
             elif operador == '>':
-                return self.construtor.fcmp_unordered('>', esquerda, direita, 'fcmpMaior')
+                return self.construtor.fcmp_unordered('>', esquerda, direita, name = 'fcmpMaior')
             elif operador == '<=':
-                return self.construtor.fcmp_unordered('<=', esquerda, direita, 'fcmpMenorIgual')
+                return self.construtor.fcmp_unordered('<=', esquerda, direita, name = 'fcmpMenorIgual')
             elif operador == '>=':
-                return self.construtor.fcmp_unordered('>=', esquerda, direita, 'fcmpMaiorIgual')
+                return self.construtor.fcmp_unordered('>=', esquerda, direita, name = 'fcmpMaiorIgual')
             else:
-                return self.construtor.fcmp_unordered('==', esquerda, direita, 'fcmpIgual')
+                return self.construtor.fcmp_unordered('==', esquerda, direita, name = 'fcmpIgual')
 
         else:
             return self.genExprArit(nó.filho[0])
@@ -423,8 +414,8 @@ class Gen:
             direita = self.genTermo(nó.filho[2])
 
             if operador == '+':
-                return self.construtor.fadd(esquerda, direita, name='add')
-            return self.construtor.fsub(esquerda, direita, name='sub')
+                return self.construtor.fadd(esquerda, direita, name = 'add')
+            return self.construtor.fsub(direita, esquerda, name = 'sub')
 
         else:
             return self.genTermo(nó.filho[0])
@@ -450,8 +441,8 @@ class Gen:
             direita = self.genFator(nó.filho[2])
 
             if operador == '*':
-                return self.construtor.fmul(esquerda, direita, name='mul')
-            return self.construtor.fdiv(esquerda, direita, name='div')
+                return self.construtor.fmul(esquerda, direita, name = 'mul')
+            return self.construtor.fdiv(direita, esquerda, name = 'div')
 
         else:
             return self.genFator(nó.filho[0])
@@ -488,4 +479,7 @@ class Gen:
                     valor = self.construtor.sitofp(valor, ir.FloatType())
             return valor
         else:
-            return self.genChamaFuncao(nó.filho[0])
+            valor = self.genChamaFuncao(nó.filho[0])
+            if self.símbolos[nó.filho[0].folha[0]][1] == 'inteiro':
+                valor = self.construtor.sitofp(valor, ir.FloatType())
+            return valor
